@@ -1,0 +1,40 @@
+# .NET build artifacts
+bin/
+obj/
+out/
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
+
+# ASP.NET
+*.cache
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Rider
+*.DotSettings.user
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

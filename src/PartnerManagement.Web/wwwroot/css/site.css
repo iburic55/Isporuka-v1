@@ -1,0 +1,43 @@
+html {
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+body {
+    margin-bottom: 60px;
+}
+
+.btn:focus, .btn:active:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem #fff, 0 0 0 0.25rem #258cfb;
+}
+
+/* Redak partnera reagira na hover (cijeli redak je klikabilan). */
+#partnersTable tbody tr.partner-row:hover {
+    background-color: #eef6ff;
+}
+
+/* Oznaka "*" za istaknutog partnera (>5 polica ili iznos >5000). */
+.highlight-marker {
+    color: #dc3545;
+    font-weight: 700;
+}
+
+/* Vizualno isticanje netom unesenog partnera na vrhu liste. */
+#partnersTable tbody tr.table-warning {
+    background-color: #fff3cd !important;
+}
+
+.footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    white-space: nowrap;
+    line-height: 60px;
+}

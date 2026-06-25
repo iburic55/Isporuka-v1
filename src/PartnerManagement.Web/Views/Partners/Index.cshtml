@@ -1,0 +1,183 @@
+@model PartnerListViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    ViewData["Title"] = "Partneri";
+    var tokens = Antiforgery.GetAndStoreTokens(Context);
+}
+
+@functions {
+    static string YesNo(bool value) => value ? "Da" : "Ne";
+
+    static string GenderText(string g) => g switch
+    {
+        "M" => "M (muški)",
+        "F" => "F (ženski)",
+        _ => "N (nije navedeno)"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Partneri</h1>
+    <div>
+        <a class="btn btn-success" asp-controller="Partners" asp-action="Create">+ Unesi partnera</a>
+        <button type="button" class="btn btn-primary" id="btnOpenPolicy" data-toggle="modal" data-target="#policyModal">
+            Unesi policu
+        </button>
+    </div>
+</div>
+
+@if (TempData["PolicyMessage"] is string policyMsg)
+{
+    <div class="alert alert-info">@policyMsg</div>
+}
+
+<p class="text-muted small">
+    Partner sa <strong>*</strong> ispred imena ima više od 5 polica ili ukupan iznos polica veći od 5000.
+    Kliknite na redak za sve detalje.
+</p>
+
+<div class="table-responsive">
+    <table class="table table-hover table-bordered align-middle" id="partnersTable">
+        <thead class="thead-light">
+            <tr>
+                <th>Ime i prezime</th>
+                <th>Broj partnera</th>
+                <th>OIB</th>
+                <th>Tip</th>
+                <th>Datum zapisa (UTC)</th>
+                <th>Inozemni</th>
+                <th>Spol</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (Model.Partners.Count == 0)
+        {
+            <tr><td colspan="7" class="text-center text-muted">Nema unesenih partnera.</td></tr>
+        }
+        @foreach (var p in Model.Partners)
+        {
+            var isNew = Model.NewPartnerId == p.PartnerId;
+            <tr class="partner-row@(isNew ? " table-warning font-weight-bold" : "")"
+                data-partner-id="@p.PartnerId"
+                data-firstname="@p.FirstName"
+                data-lastname="@p.LastName"
+                data-fullname="@p.FullName"
+                data-address="@p.Address"
+                data-partnernumber="@p.PartnerNumber"
+                data-oib="@p.CroatianPIN"
+                data-type="@p.PartnerTypeName"
+                data-created="@p.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")"
+                data-createby="@p.CreateByUser"
+                data-foreign="@YesNo(p.IsForeign)"
+                data-externalcode="@p.ExternalCode"
+                data-gender="@GenderText(p.Gender)"
+                data-policycount="@p.PolicyCount"
+                data-policytotal="@p.PolicyTotal.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                data-highlighted="@(p.IsHighlighted ? "true" : "false")"
+                style="cursor:pointer">
+                <td>
+                    <span class="highlight-marker" aria-label="Istaknuti partner">@(p.IsHighlighted ? "* " : "")</span><span class="partner-fullname">@p.FullName</span>
+                </td>
+                <td>@p.PartnerNumber</td>
+                <td>@(string.IsNullOrEmpty(p.CroatianPIN) ? "-" : p.CroatianPIN)</td>
+                <td>@p.PartnerTypeName</td>
+                <td>@p.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                <td>@YesNo(p.IsForeign)</td>
+                <td>@p.Gender</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal: detalji partnera -->
+<div class="modal fade" id="partnerDetailsModal" tabindex="-1" role="dialog" aria-labelledby="partnerDetailsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="partnerDetailsLabel">Detalji partnera</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Zatvori">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Ime i prezime</dt><dd class="col-sm-8" data-field="fullname"></dd>
+                    <dt class="col-sm-4">Adresa</dt><dd class="col-sm-8" data-field="address"></dd>
+                    <dt class="col-sm-4">Broj partnera</dt><dd class="col-sm-8" data-field="partnernumber"></dd>
+                    <dt class="col-sm-4">OIB</dt><dd class="col-sm-8" data-field="oib"></dd>
+                    <dt class="col-sm-4">Tip partnera</dt><dd class="col-sm-8" data-field="type"></dd>
+                    <dt class="col-sm-4">Datum zapisa (UTC)</dt><dd class="col-sm-8" data-field="created"></dd>
+                    <dt class="col-sm-4">Korisnik (e-mail)</dt><dd class="col-sm-8" data-field="createby"></dd>
+                    <dt class="col-sm-4">Inozemni</dt><dd class="col-sm-8" data-field="foreign"></dd>
+                    <dt class="col-sm-4">Vanjski kod</dt><dd class="col-sm-8" data-field="externalcode"></dd>
+                    <dt class="col-sm-4">Spol</dt><dd class="col-sm-8" data-field="gender"></dd>
+                    <dt class="col-sm-4">Broj polica</dt><dd class="col-sm-8" data-field="policycount"></dd>
+                    <dt class="col-sm-4">Ukupan iznos polica</dt><dd class="col-sm-8" data-field="policytotal"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zatvori</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: unos police -->
+<div class="modal fade" id="policyModal" tabindex="-1" role="dialog" aria-labelledby="policyModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="policyModalLabel">Unos police</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Zatvori">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="policyForm" novalidate>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" id="policyError"></div>
+
+                    <div class="form-group">
+                        <label for="policyPartnerId">Partner</label>
+                        <select class="form-control" id="policyPartnerId" name="PartnerId" required>
+                            <option value="">-- odaberite partnera --</option>
+                            @foreach (var p in Model.Partners)
+                            {
+                                <option value="@p.PartnerId">@p.FullName (@p.PartnerNumber)</option>
+                            }
+                        </select>
+                        <span class="text-danger small d-none" data-error-for="PartnerId"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="policyNumber">Broj police</label>
+                        <input type="text" class="form-control" id="policyNumber" name="PolicyNumber"
+                               minlength="10" maxlength="15" pattern="[a-zA-Z0-9]+" required />
+                        <small class="form-text text-muted">10–15 alfanumeričkih znakova.</small>
+                        <span class="text-danger small d-none" data-error-for="PolicyNumber"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="policyAmount">Iznos police</label>
+                        <input type="number" class="form-control" id="policyAmount" name="Amount"
+                               step="0.01" min="0.01" required />
+                        <small class="form-text text-muted">Mora biti veći od 0. Decimalni separator je točka.</small>
+                        <span class="text-danger small d-none" data-error-for="Amount"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Odustani</button>
+                    <button type="submit" class="btn btn-primary" id="policySubmit">Spremi policu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <input type="hidden" id="RequestVerificationToken" value="@tokens.RequestToken" />
+    <script>
+        window.policyCreateUrl = '@Url.Action("Create", "Policies")';
+    </script>
+    <script src="~/js/partners.js" asp-append-version="true"></script>
+}

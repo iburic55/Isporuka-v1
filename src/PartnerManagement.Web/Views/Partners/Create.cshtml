@@ -1,0 +1,96 @@
+@model PartnerInput
+@{
+    ViewData["Title"] = "Unos partnera";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Unos partnera</h1>
+    <a class="btn btn-outline-secondary" asp-action="Index">&larr; Natrag na listu</a>
+</div>
+
+<form asp-action="Create" method="post" novalidate>
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row">
+        <div class="form-group col-md-6">
+            <label asp-for="FirstName"></label>
+            <input asp-for="FirstName" class="form-control" maxlength="255" />
+            <span asp-validation-for="FirstName" class="text-danger"></span>
+        </div>
+        <div class="form-group col-md-6">
+            <label asp-for="LastName"></label>
+            <input asp-for="LastName" class="form-control" maxlength="255" />
+            <span asp-validation-for="LastName" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Address"></label>
+        <input asp-for="Address" class="form-control" maxlength="255" />
+        <span asp-validation-for="Address" class="text-danger"></span>
+    </div>
+
+    <div class="row">
+        <div class="form-group col-md-6">
+            <label asp-for="PartnerNumber"></label>
+            <input asp-for="PartnerNumber" class="form-control" maxlength="20" inputmode="numeric"
+                   placeholder="20 znamenki" />
+            <span asp-validation-for="PartnerNumber" class="text-danger"></span>
+        </div>
+        <div class="form-group col-md-6">
+            <label asp-for="CroatianPIN"></label>
+            <input asp-for="CroatianPIN" class="form-control" maxlength="11" inputmode="numeric"
+                   placeholder="11 znamenki (neobavezno)" />
+            <span asp-validation-for="CroatianPIN" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="form-group col-md-6">
+            <label asp-for="PartnerTypeId"></label>
+            <select asp-for="PartnerTypeId" class="form-control">
+                <option value="">-- odaberite tip --</option>
+                <option value="1">Personal</option>
+                <option value="2">Legal</option>
+            </select>
+            <span asp-validation-for="PartnerTypeId" class="text-danger"></span>
+        </div>
+        <div class="form-group col-md-6">
+            <label asp-for="Gender"></label>
+            <select asp-for="Gender" class="form-control">
+                <option value="">-- odaberite spol --</option>
+                <option value="M">M (muški)</option>
+                <option value="F">F (ženski)</option>
+                <option value="N">N (nije navedeno)</option>
+            </select>
+            <span asp-validation-for="Gender" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="form-group col-md-6">
+            <label asp-for="CreateByUser"></label>
+            <input asp-for="CreateByUser" class="form-control" maxlength="255" type="email"
+                   placeholder="korisnik@example.com" />
+            <span asp-validation-for="CreateByUser" class="text-danger"></span>
+        </div>
+        <div class="form-group col-md-6">
+            <label asp-for="ExternalCode"></label>
+            <input asp-for="ExternalCode" class="form-control" maxlength="20"
+                   placeholder="10–20 alfanumerik (jedinstveno, neobavezno)" />
+            <span asp-validation-for="ExternalCode" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="form-group form-check">
+        <input asp-for="IsForeign" class="form-check-input" />
+        <label asp-for="IsForeign" class="form-check-label"></label>
+    </div>
+
+    <button type="submit" class="btn btn-success">Spremi partnera</button>
+    <a class="btn btn-link" asp-action="Index">Odustani</a>
+</form>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
