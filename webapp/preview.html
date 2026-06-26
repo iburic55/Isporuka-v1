@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="hr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leadovi HR — live preview</title>
+<style>
+ :root{--b:#0f62fe;--bg:#f4f5f7;--ink:#161616}
+ *{box-sizing:border-box} body{font-family:system-ui,Segoe UI,Arial;margin:0;background:var(--bg);color:var(--ink)}
+ header{background:#fff;border-bottom:1px solid #e0e0e0;padding:16px 24px}
+ h1{margin:0;font-size:20px} .sub{color:#6f6f6f;font-size:13px;margin-top:4px}
+ .wrap{max-width:1100px;margin:0 auto;padding:20px 24px}
+ .card{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:16px;margin-bottom:16px}
+ .filters{display:grid;grid-template-columns:2fr 1fr 1fr auto auto;gap:10px;align-items:center}
+ input,select{padding:9px 10px;border:1px solid #c6c6c6;border-radius:8px;font-size:14px;width:100%}
+ label.chk{display:flex;gap:6px;align-items:center;font-size:13px;white-space:nowrap}
+ .stats{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0}
+ .stat{background:#eef1ff;border-radius:8px;padding:8px 12px;font-size:13px}
+ .stat b{font-size:18px;display:block}
+ button{background:var(--b);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer}
+ button.sec{background:#fff;color:var(--ink);border:1px solid #c6c6c6}
+ table{width:100%;border-collapse:collapse;font-size:13px}
+ th,td{text-align:left;padding:9px 8px;border-bottom:1px solid #eee;vertical-align:top}
+ th{color:#525252;font-weight:600} tr:hover td{background:#fafafa}
+ .tag{background:#e8f5e9;color:#1b5e20;border-radius:20px;padding:2px 8px;font-size:11px}
+ .pager{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:12px}
+ a{color:var(--b);text-decoration:none}
+ .pro{background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:10px}
+ .badge{display:inline-block;background:#e0e0e0;border-radius:6px;padding:2px 8px;font-size:11px;margin-left:6px}
+</style></head><body>
+<header>
+ <h1>Leadovi HR — ugostiteljski objekti <span class="badge">LIVE PREVIEW (offline)</span></h1>
+ <div class="sub" id="sub"></div>
+</header>
+<div class="wrap">
+ <div class="card">
+  <div class="filters">
+   <input id="q" placeholder="Pretraga po nazivu…">
+   <select id="category"><option value="">Sve kategorije</option></select>
+   <input id="settlement" placeholder="Naselje…">
+   <label class="chk"><input type="checkbox" id="has_email"> ima email</label>
+   <label class="chk"><input type="checkbox" id="has_phone"> ima tel.</label>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+   <button onclick="exportCsv(false)">⬇ Izvezi CSV (FREE)</button>
+   <button class="sec" onclick="exportCsv(true)">★ Izvezi sve (PRO)</button>
+  </div>
+  <div class="pro">💡 <b>Monetizacija:</b> FREE izvoz je ograničen na 25 redaka.
+   Puni izvoz svih filtriranih leadova je PRO (pretplata / jednokratno). PRO ključ u demu: <b>PRO-2026</b></div>
+ </div>
+ <div class="card">
+  <table><thead><tr>
+    <th>Naziv</th><th>Kat.</th><th>Naselje</th><th>Telefon</th><th>Email</th><th>Web</th>
+  </tr></thead><tbody id="rows"></tbody></table>
+  <div class="pager">
+   <button class="sec" onclick="go(-1)">‹ Prev</button>
+   <span id="pageinfo"></span>
+   <button class="sec" onclick="go(1)">Next ›</button>
+  </div>
+ </div>
+</div>
+<script>
+const DATA = [{"name": "Konoba Mol", "category": "konoba", "settlement": "Split", "address": "Riva 1, 21000 Split", "phone": "+38521123456", "email": "info@konoba-mol.hr", "website": "https://konoba-mol.hr", "lat": 43.5081, "lon": 16.4402, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/1"}, {"name": "Pizzeria Adriatic", "category": "restoran", "settlement": "Split", "address": "Marmontova 5, 21000 Split", "phone": "+38521998877", "email": "rezervacije@adriatic.hr", "website": "https://adriatic-pizza.hr", "lat": 43.5089, "lon": 16.4391, "source": "google_maps", "url": "https://maps.google.com/?cid=2"}, {"name": "Caffe Bar Riva", "category": "kafic", "settlement": "Split", "address": "Obala HNP 10, 21000 Split", "phone": "+38521223344", "email": "", "website": "", "lat": 43.5076, "lon": 16.4399, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/3"}, {"name": "Restoran Dubravkin Put", "category": "restoran", "settlement": "Zagreb", "address": "Dubravkin put 2, 10000 Zagreb", "phone": "+38514834970", "email": "info@dubravkin-put.com", "website": "https://dubravkin-put.com", "lat": 45.8214, "lon": 15.9709, "source": "gastronaut", "url": "https://www.gastronaut.hr/restoran/dubravkin-put"}, {"name": "Fast Food Pingvin", "category": "fast_food", "settlement": "Zagreb", "address": "Teslina 7, 10000 Zagreb", "phone": "+38514811007", "email": "", "website": "https://pingvin.hr", "lat": 45.8113, "lon": 15.9772, "source": "google_maps", "url": "https://maps.google.com/?cid=5"}, {"name": "Hotel Esplanade", "category": "hotel", "settlement": "Zagreb", "address": "Mihanoviceva 1, 10000 Zagreb", "phone": "+38514566666", "email": "sales@esplanade.hr", "website": "https://www.esplanade.hr", "lat": 45.8048, "lon": 15.9783, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/6"}, {"name": "Camping Polari", "category": "kamp", "settlement": "Rovinj", "address": "Polari bb, 52210 Rovinj", "phone": "+38552801501", "email": "polari@maistra.hr", "website": "https://www.campingrovinjvrsar.com", "lat": 45.0617, "lon": 13.6663, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/7"}, {"name": "Apartmani More", "category": "apartman", "settlement": "Rovinj", "address": "Setaliste V. Nazora 12, 52210 Rovinj", "phone": "+38552811223", "email": "booking@apartmani-more.hr", "website": "https://apartmani-more.hr", "lat": 45.0796, "lon": 13.6387, "source": "gastronaut", "url": "https://www.gastronaut.hr/objekt/apartmani-more"}, {"name": "Konoba Batelina", "category": "konoba", "settlement": "Pula", "address": "Cimulje 25, 52100 Pula", "phone": "+38552573767", "email": "", "website": "", "lat": 44.8205, "lon": 13.8499, "source": "google_maps", "url": "https://maps.google.com/?cid=9"}, {"name": "Caffe Galerija", "category": "kafic", "settlement": "Pula", "address": "Kandlerova 3, 52100 Pula", "phone": "+38552210987", "email": "galerija@kafic.hr", "website": "https://galerija-kafic.hr", "lat": 44.8666, "lon": 13.8496, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/10"}, {"name": "Hotel Lone", "category": "hotel", "settlement": "Rovinj", "address": "Luje Adamovica 31, 52210 Rovinj", "phone": "+38552632000", "email": "info@lonehotel.com", "website": "https://www.maistra.com/lone", "lat": 45.07, "lon": 13.639, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/11"}, {"name": "Restoran Pelegrini", "category": "restoran", "settlement": "Sibenik", "address": "Jurja Dalmatinca 1, 22000 Sibenik", "phone": "+38522213701", "email": "info@pelegrini.hr", "website": "https://www.pelegrini.hr", "lat": 43.735, "lon": 15.8889, "source": "gastronaut", "url": "https://www.gastronaut.hr/restoran/pelegrini"}, {"name": "Fast Food Toranj", "category": "fast_food", "settlement": "Sibenik", "address": "Trg Republike 4, 22000 Sibenik", "phone": "+38522331122", "email": "", "website": "", "lat": 43.736, "lon": 15.8901, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/13"}, {"name": "Apartmani Sunce", "category": "apartman", "settlement": "Zadar", "address": "Obala kralja Tomislava 5, 23000 Zadar", "phone": "+38523305060", "email": "info@apartmani-sunce.hr", "website": "https://apartmani-sunce.hr", "lat": 44.1194, "lon": 15.2314, "source": "google_maps", "url": "https://maps.google.com/?cid=14"}, {"name": "Konoba Skoblar", "category": "konoba", "settlement": "Zadar", "address": "Trg Petra Zoranica 1, 23000 Zadar", "phone": "+38523213236", "email": "konoba@skoblar.hr", "website": "https://skoblar.hr", "lat": 44.1156, "lon": 15.2247, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/15"}];
+const FREE_LIMIT = 25;
+const PRO_KEY = "PRO-2026";
+const PER = 20;
+let page = 1, filtered = [];
+
+document.getElementById('sub').textContent =
+  `Baza: ${DATA.length} objekata · izvor: uzorak (demo) · FREE izvoz do ${FREE_LIMIT} redaka`;
+const cats=[...new Set(DATA.map(r=>r.category).filter(Boolean))].sort();
+category.innerHTML='<option value="">Sve kategorije</option>'+cats.map(c=>`<option>${c}</option>`).join('');
+
+function filter(){
+ const q=el('q').toLowerCase(), c=el('category').toLowerCase(),
+       s=el('settlement').toLowerCase(),
+       he=document.getElementById('has_email').checked,
+       hp=document.getElementById('has_phone').checked;
+ return DATA.filter(r=>{
+  if(q && !(r.name||'').toLowerCase().includes(q))return false;
+  if(c && (r.category||'').toLowerCase()!==c)return false;
+  if(s && !(r.settlement||'').toLowerCase().includes(s))return false;
+  if(he && !r.email)return false;
+  if(hp && !r.phone)return false;
+  return true;
+ });
+}
+function el(id){return document.getElementById(id).value;}
+function render(){
+ filtered=filter();
+ const pages=Math.max(1,Math.ceil(filtered.length/PER));
+ if(page>pages)page=pages;
+ const slice=filtered.slice((page-1)*PER,page*PER);
+ stats.innerHTML=
+  `<div class="stat"><b>${filtered.length}</b>rezultata</div>`+
+  `<div class="stat"><b>${filtered.filter(r=>r.email).length}</b>s emailom</div>`+
+  `<div class="stat"><b>${filtered.filter(r=>r.phone).length}</b>s telefonom</div>`+
+  `<div class="stat"><b>${filtered.filter(r=>r.website).length}</b>s webom</div>`;
+ rows.innerHTML=slice.map(x=>`<tr>
+   <td><b>${x.name||''}</b></td>
+   <td><span class="tag">${x.category||''}</span></td>
+   <td>${x.settlement||''}</td>
+   <td>${x.phone||'—'}</td>
+   <td>${x.email?('<a href="mailto:'+x.email+'">'+x.email+'</a>'):'—'}</td>
+   <td>${x.website?('<a href="'+x.website+'" target="_blank">link</a>'):'—'}</td>
+ </tr>`).join('')||'<tr><td colspan=6>Nema rezultata.</td></tr>';
+ pageinfo.textContent=`Stranica ${page} / ${pages}`;
+}
+function go(d){page=Math.max(1,page+d);render();}
+function exportCsv(pro){
+ let rows=filter(), capped=false;
+ if(pro){const k=prompt('Unesi PRO ključ (demo: PRO-2026):');if(k!==PRO_KEY){alert('Neispravan ključ. FREE izvoz.');pro=false;}}
+ if(!pro && rows.length>FREE_LIMIT){rows=rows.slice(0,FREE_LIMIT);capped=true;}
+ const F=['name','category','settlement','address','phone','email','website','lat','lon','source','url'];
+ const esc=v=>{v=(v??'').toString();return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+ const csv=[F.join(',')].concat(rows.map(r=>F.map(f=>esc(r[f])).join(','))).join('\n');
+ const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+ a.download=pro?'leadovi_pro.csv':'leadovi_free.csv';a.click();
+ if(capped)setTimeout(()=>alert('FREE izvoz ograničen na '+FREE_LIMIT+' redaka. PRO za sve.'),200);
+}
+['q','category','settlement','has_email','has_phone'].forEach(id=>{
+ document.getElementById(id).addEventListener('input',()=>{page=1;render();});
+});
+render();
+</script>
+</body></html>

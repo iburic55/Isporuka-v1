@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="hr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f62fe">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Leadovi HR">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Leadovi HR</title>
+<style>
+ :root{--b:#0f62fe;--bg:#f4f5f7;--ink:#161616;--mut:#6f6f6f;--card:#fff;--line:#e6e6e6}
+ *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+ html,body{margin:0;height:100%}
+ body{font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink);
+   padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+ .top{position:sticky;top:0;z-index:5;background:var(--b);color:#fff;padding:14px 16px 10px}
+ .top h1{margin:0;font-size:18px;display:flex;align-items:center;gap:8px}
+ .search{margin-top:10px;display:flex;background:#fff;border-radius:12px;padding:10px 12px;gap:8px;align-items:center}
+ .search input{border:0;outline:0;font-size:16px;width:100%;background:transparent}
+ .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;scrollbar-width:none}
+ .chips::-webkit-scrollbar{display:none}
+ .chip{flex:0 0 auto;background:#fff;border:1px solid var(--line);border-radius:20px;padding:8px 14px;font-size:13px;white-space:nowrap}
+ .chip.on{background:var(--b);color:#fff;border-color:var(--b)}
+ .meta{padding:0 16px 4px;color:var(--mut);font-size:13px}
+ .list{padding:8px 12px 90px}
+ .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+ .card h3{margin:0 0 2px;font-size:16px}
+ .card .ad{color:var(--mut);font-size:13px;margin-bottom:10px}
+ .tagrow{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+ .tag{background:#e8f5e9;color:#1b5e20;border-radius:20px;padding:2px 10px;font-size:11px}
+ .tag.s{background:#eef1ff;color:#0f3bd6}
+ .acts{display:flex;gap:8px}
+ .acts a{flex:1;text-align:center;text-decoration:none;font-size:13px;font-weight:600;
+   padding:10px;border-radius:10px;border:1px solid var(--line);color:var(--ink);background:#fafafa}
+ .acts a.p{background:var(--b);color:#fff;border-color:var(--b)}
+ .acts a.off{opacity:.35;pointer-events:none}
+ .empty{text-align:center;color:var(--mut);padding:40px 20px}
+ .fab{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+   background:linear-gradient(to top,#fff 70%,rgba(255,255,255,0));display:flex;gap:10px}
+ .fab button{flex:1;border:0;border-radius:12px;padding:14px;font-size:14px;font-weight:700;color:#fff;background:var(--b)}
+ .fab button.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
+ .install{display:none;background:#fff8e1;border-top:1px solid #ffe082;padding:10px 16px;font-size:13px;
+   align-items:center;justify-content:space-between;gap:10px}
+ .install button{border:0;background:var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px}
+</style></head><body>
+<div class="top">
+ <h1>🍽️ Leadovi HR</h1>
+ <div class="search">
+  <span>🔎</span><input id="q" placeholder="Pretraži naziv ili naselje…" autocomplete="off">
+ </div>
+</div>
+<div class="chips" id="chips"></div>
+<div class="meta" id="meta"></div>
+<div class="list" id="list"></div>
+<div class="install" id="install">
+ <span>📲 Instaliraj kao app na početni ekran</span><button id="installBtn">Instaliraj</button>
+</div>
+<div class="fab">
+ <button class="sec" onclick="exportCsv(false)">⬇ CSV (FREE)</button>
+ <button onclick="exportCsv(true)">★ Sve (PRO)</button>
+</div>
+<script>
+const DATA = [{"name": "Konoba Mol", "category": "konoba", "settlement": "Split", "address": "Riva 1, 21000 Split", "phone": "+38521123456", "email": "info@konoba-mol.hr", "website": "https://konoba-mol.hr", "lat": 43.5081, "lon": 16.4402, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/1"}, {"name": "Pizzeria Adriatic", "category": "restoran", "settlement": "Split", "address": "Marmontova 5, 21000 Split", "phone": "+38521998877", "email": "rezervacije@adriatic.hr", "website": "https://adriatic-pizza.hr", "lat": 43.5089, "lon": 16.4391, "source": "google_maps", "url": "https://maps.google.com/?cid=2"}, {"name": "Caffe Bar Riva", "category": "kafic", "settlement": "Split", "address": "Obala HNP 10, 21000 Split", "phone": "+38521223344", "email": "", "website": "", "lat": 43.5076, "lon": 16.4399, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/3"}, {"name": "Restoran Dubravkin Put", "category": "restoran", "settlement": "Zagreb", "address": "Dubravkin put 2, 10000 Zagreb", "phone": "+38514834970", "email": "info@dubravkin-put.com", "website": "https://dubravkin-put.com", "lat": 45.8214, "lon": 15.9709, "source": "gastronaut", "url": "https://www.gastronaut.hr/restoran/dubravkin-put"}, {"name": "Fast Food Pingvin", "category": "fast_food", "settlement": "Zagreb", "address": "Teslina 7, 10000 Zagreb", "phone": "+38514811007", "email": "", "website": "https://pingvin.hr", "lat": 45.8113, "lon": 15.9772, "source": "google_maps", "url": "https://maps.google.com/?cid=5"}, {"name": "Hotel Esplanade", "category": "hotel", "settlement": "Zagreb", "address": "Mihanoviceva 1, 10000 Zagreb", "phone": "+38514566666", "email": "sales@esplanade.hr", "website": "https://www.esplanade.hr", "lat": 45.8048, "lon": 15.9783, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/6"}, {"name": "Camping Polari", "category": "kamp", "settlement": "Rovinj", "address": "Polari bb, 52210 Rovinj", "phone": "+38552801501", "email": "polari@maistra.hr", "website": "https://www.campingrovinjvrsar.com", "lat": 45.0617, "lon": 13.6663, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/7"}, {"name": "Apartmani More", "category": "apartman", "settlement": "Rovinj", "address": "Setaliste V. Nazora 12, 52210 Rovinj", "phone": "+38552811223", "email": "booking@apartmani-more.hr", "website": "https://apartmani-more.hr", "lat": 45.0796, "lon": 13.6387, "source": "gastronaut", "url": "https://www.gastronaut.hr/objekt/apartmani-more"}, {"name": "Konoba Batelina", "category": "konoba", "settlement": "Pula", "address": "Cimulje 25, 52100 Pula", "phone": "+38552573767", "email": "", "website": "", "lat": 44.8205, "lon": 13.8499, "source": "google_maps", "url": "https://maps.google.com/?cid=9"}, {"name": "Caffe Galerija", "category": "kafic", "settlement": "Pula", "address": "Kandlerova 3, 52100 Pula", "phone": "+38552210987", "email": "galerija@kafic.hr", "website": "https://galerija-kafic.hr", "lat": 44.8666, "lon": 13.8496, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/10"}, {"name": "Hotel Lone", "category": "hotel", "settlement": "Rovinj", "address": "Luje Adamovica 31, 52210 Rovinj", "phone": "+38552632000", "email": "info@lonehotel.com", "website": "https://www.maistra.com/lone", "lat": 45.07, "lon": 13.639, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/11"}, {"name": "Restoran Pelegrini", "category": "restoran", "settlement": "Sibenik", "address": "Jurja Dalmatinca 1, 22000 Sibenik", "phone": "+38522213701", "email": "info@pelegrini.hr", "website": "https://www.pelegrini.hr", "lat": 43.735, "lon": 15.8889, "source": "gastronaut", "url": "https://www.gastronaut.hr/restoran/pelegrini"}, {"name": "Fast Food Toranj", "category": "fast_food", "settlement": "Sibenik", "address": "Trg Republike 4, 22000 Sibenik", "phone": "+38522331122", "email": "", "website": "", "lat": 43.736, "lon": 15.8901, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/13"}, {"name": "Apartmani Sunce", "category": "apartman", "settlement": "Zadar", "address": "Obala kralja Tomislava 5, 23000 Zadar", "phone": "+38523305060", "email": "info@apartmani-sunce.hr", "website": "https://apartmani-sunce.hr", "lat": 44.1194, "lon": 15.2314, "source": "google_maps", "url": "https://maps.google.com/?cid=14"}, {"name": "Konoba Skoblar", "category": "konoba", "settlement": "Zadar", "address": "Trg Petra Zoranica 1, 23000 Zadar", "phone": "+38523213236", "email": "konoba@skoblar.hr", "website": "https://skoblar.hr", "lat": 44.1156, "lon": 15.2247, "source": "openstreetmap", "url": "https://www.openstreetmap.org/node/15"}];
+const FREE_LIMIT = 25, PRO_KEY = "PRO-2026";
+let cat = "";
+const cats = [...new Set(DATA.map(r=>r.category).filter(Boolean))].sort();
+
+function buildChips(){
+ const all = ['<div class="chip '+(cat===''?'on':'')+'" data-c="">Sve</div>']
+   .concat(cats.map(c=>'<div class="chip '+(cat===c?'on':'')+'" data-c="'+c+'">'+c+'</div>'));
+ chips.innerHTML = all.join('');
+ [...chips.children].forEach(ch=>ch.onclick=()=>{cat=ch.dataset.c;buildChips();render();});
+}
+function filter(){
+ const q=document.getElementById('q').value.toLowerCase().trim();
+ return DATA.filter(r=>{
+  if(cat && (r.category||'')!==cat)return false;
+  if(q && !((r.name||'').toLowerCase().includes(q) || (r.settlement||'').toLowerCase().includes(q)))return false;
+  return true;
+ });
+}
+function card(x){
+ const tel=x.phone?'tel:'+x.phone:'', mail=x.email?'mailto:'+x.email:'';
+ const map=(x.lat&&x.lon)?('https://maps.google.com/?q='+x.lat+','+x.lon):(x.url||'');
+ return `<div class="card">
+  <h3>${x.name||''}</h3>
+  <div class="ad">${x.address||x.settlement||''}</div>
+  <div class="tagrow"><span class="tag">${x.category||''}</span>
+   <span class="tag s">${x.settlement||''}</span></div>
+  <div class="acts">
+   <a class="p ${tel?'':'off'}" href="${tel}">📞 Nazovi</a>
+   <a class="${mail?'':'off'}" href="${mail}">✉️ Email</a>
+   <a class="${map?'':'off'}" href="${map}" target="_blank">📍 Karta</a>
+  </div></div>`;
+}
+function render(){
+ const res=filter();
+ meta.textContent=`${res.length} objekata · ${res.filter(r=>r.email).length} s emailom · ${res.filter(r=>r.phone).length} s telefonom`;
+ list.innerHTML=res.length?res.map(card).join(''):'<div class="empty">Nema rezultata 🔍</div>';
+}
+function exportCsv(pro){
+ let rows=filter(), capped=false;
+ if(pro){const k=prompt('PRO ključ (demo: PRO-2026):');if(k!==PRO_KEY){alert('Neispravan ključ → FREE izvoz.');pro=false;}}
+ if(!pro && rows.length>FREE_LIMIT){rows=rows.slice(0,FREE_LIMIT);capped=true;}
+ const F=['name','category','settlement','address','phone','email','website','lat','lon','source','url'];
+ const esc=v=>{v=(v??'').toString();return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+ const csv=[F.join(',')].concat(rows.map(r=>F.map(f=>esc(r[f])).join(','))).join('\n');
+ const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+ a.download=pro?'leadovi_pro.csv':'leadovi_free.csv';a.click();
+ if(capped)setTimeout(()=>alert('FREE izvoz ograničen na '+FREE_LIMIT+' redaka. PRO za sve.'),200);
+}
+document.getElementById('q').addEventListener('input',render);
+buildChips();render();
+
+// PWA install + service worker
+let deferred;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;install.style.display='flex';});
+installBtn.onclick=async()=>{if(deferred){deferred.prompt();await deferred.userChoice;install.style.display='none';}};
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+</script>
+</body></html>

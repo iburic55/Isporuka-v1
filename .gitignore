@@ -1,0 +1,8 @@
+data/cache/
+data/*.json
+data/*.csv
+data/_*.json
+__pycache__/
+*.pyc
+.venv/
+settlements.json
