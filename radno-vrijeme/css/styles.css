@@ -505,6 +505,37 @@ input:focus-visible, select:focus-visible {
 .legend__swatch--hours { background: var(--hours); }
 .legend__swatch--tips { background: var(--tips); }
 
+/* ---------- potvrda ---------- */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 16, 13, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 30;
+}
+
+.overlay[hidden] { display: none; }
+
+.modal {
+    background: var(--panel);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    max-width: 26rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.modal__text { margin: 0; }
+.modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+
 /* ---------- obavijest ---------- */
 
 .toast {

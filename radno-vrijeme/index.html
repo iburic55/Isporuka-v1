@@ -230,6 +230,16 @@
     </section>
 </main>
 
+<div id="confirmOverlay" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmText">
+        <p id="confirmText" class="modal__text"></p>
+        <div class="modal__actions">
+            <button type="button" id="confirmCancel" class="btn btn--ghost">Odustani</button>
+            <button type="button" id="confirmOk" class="btn btn--danger">Potvrdi</button>
+        </div>
+    </div>
+</div>
+
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>

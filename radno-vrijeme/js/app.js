@@ -189,6 +189,37 @@
 
     /* =============== obavijesti =============== */
 
+    /**
+     * Potvrda u samoj stranici umjesto `window.confirm` — ugrađeni dijalog
+     * preglednika zna biti blokiran kad stranica radi unutar okvira.
+     */
+    function askConfirm(message) {
+        return new Promise((resolve) => {
+            const overlay = $('confirmOverlay');
+            $('confirmText').textContent = message;
+            overlay.hidden = false;
+            $('confirmOk').focus();
+
+            const finish = (answer) => {
+                overlay.hidden = true;
+                $('confirmOk').removeEventListener('click', onOk);
+                $('confirmCancel').removeEventListener('click', onCancel);
+                overlay.removeEventListener('click', onBackdrop);
+                document.removeEventListener('keydown', onKey);
+                resolve(answer);
+            };
+            const onOk = () => finish(true);
+            const onCancel = () => finish(false);
+            const onBackdrop = (event) => { if (event.target === overlay) finish(false); };
+            const onKey = (event) => { if (event.key === 'Escape') finish(false); };
+
+            $('confirmOk').addEventListener('click', onOk);
+            $('confirmCancel').addEventListener('click', onCancel);
+            overlay.addEventListener('click', onBackdrop);
+            document.addEventListener('keydown', onKey);
+        });
+    }
+
     let toastTimer = null;
     function toast(message, isError) {
         const el = $('toast');
@@ -536,19 +567,21 @@
             resetForm();
         });
 
-        $('shiftsBody').addEventListener('click', (event) => {
+        $('shiftsBody').addEventListener('click', async (event) => {
             const editId = event.target.getAttribute('data-edit');
             const deleteId = event.target.getAttribute('data-delete');
             if (editId) startEdit(editId);
             if (deleteId) {
                 const shift = Store.get(deleteId);
-                if (shift && window.confirm('Obrisati smjenu ' + shift.date + ' (' + shift.start + '–' + shift.end + ')?')) {
-                    Store.remove(deleteId);
-                    if (editingId === deleteId) resetForm();
-                    renderAll();
-                    scheduleSync();
-                    toast('Smjena je obrisana.');
-                }
+                if (!shift) return;
+                const confirmed = await askConfirm('Obrisati smjenu ' + shift.date +
+                    ' (' + shift.start + '–' + shift.end + ')?');
+                if (!confirmed) return;
+                Store.remove(deleteId);
+                if (editingId === deleteId) resetForm();
+                renderAll();
+                scheduleSync();
+                toast('Smjena je obrisana.');
             }
         });
 
@@ -668,10 +701,11 @@
             const file = event.target.files && event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = () => {
+            reader.onload = async () => {
                 try {
                     const data = JSON.parse(String(reader.result));
-                    if (!window.confirm('Uvoz zamjenjuje sve podatke na ovom uređaju. Nastaviti?')) return;
+                    const confirmed = await askConfirm('Uvoz zamjenjuje sve podatke na ovom uređaju. Nastaviti?');
+                    if (!confirmed) return;
                     Store.replace(data);
                     settings = Store.getSettings();
                     fillSettingsForm();
@@ -687,8 +721,9 @@
             reader.readAsText(file);
         });
 
-        $('clearDataBtn').addEventListener('click', () => {
-            if (!window.confirm('Trajno obrisati sve smjene i postavke s ovog uređaja?')) return;
+        $('clearDataBtn').addEventListener('click', async () => {
+            const confirmed = await askConfirm('Trajno obrisati sve smjene i postavke s ovog uređaja?');
+            if (!confirmed) return;
             Store.clear();
             settings = Store.getSettings();
             fillSettingsForm();
