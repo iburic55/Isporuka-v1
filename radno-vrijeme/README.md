@@ -16,6 +16,10 @@ interneta (vidi [Na mobitel, bez interneta](#na-mobitel-bez-interneta)).
 - **Zadnjih 30 dana s kumulativom** — dan po dan, uz stupac **Kumulativno**
   koji zbraja zaradu od početka razdoblja (100 → 300 → 600 …) i ukupan zbroj
   za svih 30 dana. Strelicama se listaju i prethodni 30-dnevni prozori.
+- **„Ako radim svaki dan"** — zaseban račun „što ako", odvojen od stvarnih
+  zbrojeva: upišeš dnevnicu, bakšiš po danu i broj dana pa dobiješ koliko bi
+  to ispalo ukupno. Polja se popunjavaju prema zadnjem odrađenom danu, imaju
+  prečace za 7 / 30 / broj dana ovog mjeseca, i pamte se između otvaranja.
 - **Izvještaji** — tjedan / 30 dana / mjesec / godina / sve, s navigacijom kroz
   razdoblja, raspodjelom po danima ili tjednima i pokazateljima poput
   **bakšiša po satu** i prosjeka po smjeni.
@@ -151,7 +155,11 @@ zajednička objema verzijama.
 - Satnica se pamti po smjeni, pa promjena zadane satnice ne mijenja
   ranije unesene smjene.
 - Tjedan počinje ponedjeljkom (ISO 8601), kao i broj tjedna u izvještaju.
-- Izvještaji prikazuju isključivo uneseno — nema procjena ni ekstrapolacije.
+- Kartica „Ako radim svaki dan" jedini je izračun koji nije stvarno stanje;
+  množi upisanu dnevnicu i bakšiš s brojem dana i ni na koji način ne dira
+  evidenciju.
+- Ostali izvještaji prikazuju isključivo uneseno — nema procjena ni
+  ekstrapolacije.
   Tjedan i mjesec grupiraju se po danima, godina po mjesecima, „Sve" po
   godinama; dani bez unesene smjene ne pojavljuju se u tablici.
 - Bez povezanog Drivea podaci žive samo u pregledniku tog uređaja; brisanje

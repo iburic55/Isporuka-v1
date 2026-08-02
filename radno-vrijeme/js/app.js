@@ -460,12 +460,115 @@
         $('reportEmpty').hidden = groups.length > 0;
     }
 
+    /* =============== „što ako radim svaki dan" =============== */
+
+    /** Zadnji dan s unesenim smjenama, zbrojen (dnevnica + bakšiš tog dana). */
+    function latestWorkedDay() {
+        const shifts = Store.all();
+        if (!shifts.length) return null;
+        const date = shifts[0].date;
+        const sum = aggregate(shifts.filter((shift) => shift.date === date));
+        return { date, wage: sum.wage, tips: sum.tips };
+    }
+
+    function daysInCurrentMonth() {
+        const today = new Date();
+        return new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    }
+
+    /** Spremljene vrijednosti; uz `reset` se ponovno uzimaju iz zadnjeg dana. */
+    function whatIfValues(reset) {
+        const last = latestWorkedDay();
+        const stored = !reset && settings.whatIfWage !== null && settings.whatIfWage !== undefined;
+        return {
+            wage: stored ? settings.whatIfWage : (last ? last.wage : 0),
+            tips: stored ? settings.whatIfTips : (last ? last.tips : 0),
+            days: (!reset && settings.whatIfDays) ? settings.whatIfDays : daysInCurrentMonth()
+        };
+    }
+
+    function fillWhatIfInputs(values) {
+        $('whatIfWage').value = values.wage ? String(Number(values.wage.toFixed(2))) : '0';
+        $('whatIfTips').value = values.tips ? String(Number(values.tips.toFixed(2))) : '0';
+        $('whatIfDays').value = String(values.days);
+    }
+
+    function renderWhatIf() {
+        const wage = Math.max(0, Number($('whatIfWage').value) || 0);
+        const tips = Math.max(0, Number($('whatIfTips').value) || 0);
+        const days = Math.max(1, Math.round(Number($('whatIfDays').value) || 1));
+        const perDay = wage + tips;
+
+        const items = [
+            { label: 'Dana', value: String(days) },
+            { label: 'Po danu', value: money(perDay) },
+            { label: 'Od sati', value: money(wage * days), cls: 'total__value--hours' },
+            { label: 'Bakšiš', value: money(tips * days), cls: 'total__value--tips' },
+            { label: 'Ukupno', value: money(perDay * days) }
+        ];
+        $('whatIfTotals').innerHTML = items.map((item) =>
+            '<div class="total"><span class="total__label">' + item.label + '</span>' +
+            '<span class="total__value ' + (item.cls || '') + '">' + item.value + '</span></div>'
+        ).join('');
+
+        const last = latestWorkedDay();
+        // Hrvatski: 1, 21, 31 dan — ostalo dana (osim 11).
+        const dayWord = (days % 10 === 1 && days % 100 !== 11) ? ' dan × ' : ' dana × ';
+        $('whatIfNote').textContent = days + dayWord +
+            money(perDay) + ' = ' + money(perDay * days) + '.' +
+            (last ? ' Zadnji odrađeni dan (' + formatDateShort(last.date) + '): dnevnica ' +
+                money(last.wage) + ', bakšiš ' + money(last.tips) + '.' : '');
+    }
+
+    function saveWhatIf() {
+        settings = Store.saveSettings({
+            whatIfWage: Math.max(0, Number($('whatIfWage').value) || 0),
+            whatIfTips: Math.max(0, Number($('whatIfTips').value) || 0),
+            whatIfDays: Math.max(1, Math.round(Number($('whatIfDays').value) || 1))
+        });
+    }
+
+    function bindWhatIf() {
+        ['whatIfWage', 'whatIfTips', 'whatIfDays'].forEach((id) => {
+            $(id).addEventListener('input', renderWhatIf);
+            $(id).addEventListener('change', () => {
+                saveWhatIf();
+                scheduleSync();
+            });
+        });
+
+        document.querySelectorAll('[data-whatif-days]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                $('whatIfDays').value = btn.dataset.whatifDays;
+                renderWhatIf();
+                saveWhatIf();
+            });
+        });
+
+        $('whatIfMonthBtn').addEventListener('click', () => {
+            $('whatIfDays').value = String(daysInCurrentMonth());
+            renderWhatIf();
+            saveWhatIf();
+        });
+
+        $('whatIfResetBtn').addEventListener('click', () => {
+            fillWhatIfInputs(whatIfValues(true));
+            renderWhatIf();
+            saveWhatIf();
+        });
+    }
+
     function renderAll() {
         document.querySelectorAll('.currency-label').forEach((el) => {
             el.textContent = settings.currency || 'EUR';
         });
         renderShifts();
         renderReport();
+        // Dok korisnik ne upiše svoje vrijednosti, „što ako" prati zadnji odrađeni dan.
+        if (settings.whatIfWage === null || settings.whatIfWage === undefined) {
+            fillWhatIfInputs(whatIfValues(false));
+        }
+        renderWhatIf();
         updateStorageStatus();
     }
 
@@ -838,11 +941,13 @@
         bindTabs();
         bindShiftForm();
         bindReports();
+        bindWhatIf();
         bindSettings();
 
         $('syncNowBtn').addEventListener('click', () => sync({ interactive: true }));
 
         fillSettingsForm();
+        fillWhatIfInputs(whatIfValues(false));
         resetForm();
         renderAll();
         setSyncStatus('Lokalno', 'off');

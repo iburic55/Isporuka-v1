@@ -21,6 +21,9 @@ const Store = (() => {
     const defaultSettings = () => ({
         hourlyRate: 0,
         currency: 'EUR',
+        whatIfWage: null,
+        whatIfTips: null,
+        whatIfDays: null,
         driveClientId: '',
         driveFileName: 'radno-vrijeme.json',
         autoSync: true,
