@@ -236,6 +236,8 @@ main {
     color: var(--ink-faint);
 }
 
+.card__section { display: flex; flex-direction: column; gap: 0.6rem; }
+
 .hint {
     margin: 0;
     color: var(--ink-faint);
@@ -385,6 +387,10 @@ input:focus-visible, select:focus-visible {
 .total__value--tips { color: var(--tips); }
 .total__note { font-size: 0.75rem; color: var(--ink-faint); }
 .totals--compact .total__value { font-size: var(--step-1); }
+
+/* Procjena nije ostvareno stanje — iscrtkani rub je odvaja od stvarnih zbrojeva. */
+.totals--projected { border-style: dashed; border-color: var(--rule-strong); }
+.totals--projected .total__value { opacity: 0.85; }
 
 /* ---------- tablice ---------- */
 

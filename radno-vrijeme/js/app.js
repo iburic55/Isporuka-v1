@@ -371,6 +371,45 @@
 
     /* =============== izvještaji =============== */
 
+    /**
+     * Procjena za cijeli mjesec: ostvareno se linearno skalira s protekle
+     * na sve dane u mjesecu. Ima smisla samo za mjesec koji je u tijeku —
+     * za završene mjesece prikazan je stvarni zbroj.
+     */
+    function renderProjection(shifts) {
+        const box = $('projection');
+        const anchor = period.anchor;
+        const today = new Date();
+        const isCurrentMonth = anchor.getFullYear() === today.getFullYear() &&
+            anchor.getMonth() === today.getMonth();
+
+        if (period.type !== 'month' || !isCurrentMonth || !shifts.length) {
+            box.hidden = true;
+            return;
+        }
+
+        const daysInMonth = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate();
+        const elapsedDays = today.getDate();
+        const factor = daysInMonth / elapsedDays;
+        const totals = aggregate(shifts);
+        const projected = {
+            count: Math.round(totals.count * factor),
+            minutes: totals.minutes * factor,
+            wage: totals.wage * factor,
+            tips: totals.tips * factor
+        };
+
+        box.hidden = false;
+        $('projectionTotals').innerHTML = totalsMarkup(projected);
+
+        const remaining = daysInMonth - elapsedDays;
+        const pace = money((totals.wage + totals.tips) / elapsedDays);
+        $('projectionNote').textContent = 'Temeljeno na ' + elapsedDays + ' od ' + daysInMonth +
+            ' dana (' + pace + ' dnevno), preostalo ' + remaining +
+            (remaining === 1 ? ' dan' : ' dana') + '. Procjena pretpostavlja isti ritam rada do kraja mjeseca' +
+            (elapsedDays < 7 ? ' — s ovako malo evidentiranih dana zna znatno odstupati.' : '.');
+    }
+
     function renderReport() {
         const range = currentPeriodRange();
         const shifts = shiftsInRange(range.from, range.to);
@@ -378,6 +417,7 @@
 
         $('periodLabel').textContent = periodLabel();
         $('reportTotals').innerHTML = totalsMarkup(totals, { extended: true });
+        renderProjection(shifts);
 
         const groups = groupShifts(shifts);
         const maxTotal = groups.reduce((max, group) => {

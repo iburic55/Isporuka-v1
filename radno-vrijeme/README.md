@@ -15,6 +15,9 @@ datoteci na tvom Google računu.
 - **Izvještaji** — tjedan / mjesec / godina / sve, s navigacijom kroz
   razdoblja, raspodjelom po danima ili tjednima i pokazateljima poput
   **bakšiša po satu** i prosjeka po smjeni.
+- **Procjena za cijeli mjesec** — u pregledu mjeseca koji je u tijeku
+  ostvareno se linearno skalira s proteklih na sve dane u mjesecu, uz
+  prikaz dnevnog prosjeka i broja preostalih dana.
 - **Izvoz u CSV** — filtrirane smjene ili cijelo razdoblje; točka-zarez i BOM
   pa se datoteka ispravno otvara u Excelu s hrvatskim postavkama.
 - **Sigurnosna kopija** — ručni izvoz/uvoz svih podataka u JSON.
@@ -84,5 +87,8 @@ radno-vrijeme/
 - Satnica se pamti po smjeni, pa promjena zadane satnice ne mijenja
   ranije unesene smjene.
 - Tjedan počinje ponedjeljkom (ISO 8601), kao i broj tjedna u izvještaju.
+- Mjesečna procjena pretpostavlja isti ritam rada do kraja mjeseca i računa
+  se po danima u mjesecu, ne po radnim danima; prikazuje se samo za mjesec
+  koji je u tijeku jer je za završene mjesece poznat stvarni zbroj.
 - Bez povezanog Drivea podaci žive samo u pregledniku tog uređaja; brisanje
   podataka preglednika ih briše. Za tu situaciju postoji izvoz u JSON.
