@@ -13,7 +13,10 @@ interneta (vidi [Na mobitel, bez interneta](#na-mobitel-bez-interneta)).
 - **Smjene** — datum, početak, kraj, pauza u minutama, satnica, bakšiš i
   napomena. Smjena koja prelazi ponoć (npr. 18:00–02:00) računa se ispravno.
 - **Zarada** — sati × satnica, plus bakšiš, po smjeni i zbirno.
-- **Izvještaji** — tjedan / mjesec / godina / sve, s navigacijom kroz
+- **Zadnjih 30 dana s kumulativom** — dan po dan, uz stupac **Kumulativno**
+  koji zbraja zaradu od početka razdoblja (100 → 300 → 600 …) i ukupan zbroj
+  za svih 30 dana. Strelicama se listaju i prethodni 30-dnevni prozori.
+- **Izvještaji** — tjedan / 30 dana / mjesec / godina / sve, s navigacijom kroz
   razdoblja, raspodjelom po danima ili tjednima i pokazateljima poput
   **bakšiša po satu** i prosjeka po smjeni.
 - **Mjesec dan po dan** — pregled mjeseca prikazuje svaki dan s unesenim
@@ -21,6 +24,12 @@ interneta (vidi [Na mobitel, bez interneta](#na-mobitel-bez-interneta)).
   je stvarni zbroj za cijeli mjesec.
 - **Izvoz u CSV** — filtrirane smjene ili cijelo razdoblje; točka-zarez i BOM
   pa se datoteka ispravno otvara u Excelu s hrvatskim postavkama.
+- **Spremanje na uređaj** — svaka izmjena odmah se zapisuje u pohranu
+  preglednika i učita pri sljedećem otvaranju. U Postavkama piše vrijeme
+  zadnjeg spremanja; ako preglednik pohranu ne dopušta, na vrhu se pojavi
+  upozorenje umjesto tihog gubitka podataka. Aplikacija traži i **trajnu
+  pohranu** (`navigator.storage.persist`) da mobilni preglednik podatke ne
+  izbaci kad mu ponestane prostora.
 - **Sigurnosna kopija** — ručni izvoz/uvoz svih podataka u JSON.
 - **Sinkronizacija s Driveom** — spajanje po zapisu (pobjeđuje novija izmjena)
   pa možeš unositi s mobitela i s računala.

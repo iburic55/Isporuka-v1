@@ -125,8 +125,18 @@
         });
     }
 
+    /** Prozor od 30 dana koji završava na zadanom datumu. */
+    function last30Range(anchor) {
+        const end = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate(), 12);
+        return { start: addDays(end, -29), end };
+    }
+
     function currentPeriodRange() {
         const anchor = period.anchor;
+        if (period.type === 'last30') {
+            const span = last30Range(anchor);
+            return { from: toIsoDate(span.start), to: toIsoDate(span.end) };
+        }
         if (period.type === 'week') {
             const start = startOfWeek(anchor);
             return { from: toIsoDate(start), to: toIsoDate(addDays(start, 6)) };
@@ -144,6 +154,13 @@
 
     function periodLabel() {
         const anchor = period.anchor;
+        if (period.type === 'last30') {
+            const span = last30Range(anchor);
+            const isToday = toIsoDate(span.end) === toIsoDate(new Date());
+            const range = span.start.getDate() + '.' + (span.start.getMonth() + 1) + '. – ' +
+                span.end.getDate() + '.' + (span.end.getMonth() + 1) + '. ' + span.end.getFullYear();
+            return (isToday ? 'Zadnjih 30 dana: ' : '') + range;
+        }
         if (period.type === 'week') {
             const start = startOfWeek(anchor);
             const end = addDays(start, 6);
@@ -167,7 +184,7 @@
 
         shifts.forEach((shift) => {
             const date = parseDate(shift.date);
-            if (period.type === 'week' || period.type === 'month') {
+            if (period.type === 'week' || period.type === 'month' || period.type === 'last30') {
                 put(shift.date, formatDateShort(shift.date), shift.date, shift);
             } else if (period.type === 'year') {
                 const key = date.getFullYear() + '-' + pad(date.getMonth() + 1);
@@ -373,7 +390,7 @@
         $('periodLabel').textContent = periodLabel();
         $('reportTotals').innerHTML = totalsMarkup(totals, { extended: true });
 
-        const groupHeaders = { week: 'Dan', month: 'Dan', year: 'Mjesec', all: 'Godina' };
+        const groupHeaders = { week: 'Dan', last30: 'Dan', month: 'Dan', year: 'Mjesec', all: 'Godina' };
         $('reportGroupHeader').textContent = groupHeaders[period.type];
 
         const groups = groupShifts(shifts);
@@ -404,19 +421,30 @@
             '</div>'
             : '';
 
+        // Kumulativa raste kroz razdoblje: svaki redak nosi zbroj svih dotad.
+        let running = 0;
         $('reportBody').innerHTML = groups.map((group) => {
             const sum = aggregate(group.shifts);
+            const groupTotal = sum.wage + sum.tips;
+            running += groupTotal;
             return '<tr>' +
                 '<td>' + escapeHtml(group.label) + '</td>' +
                 '<td class="num">' + sum.count + '</td>' +
                 '<td class="num">' + formatHours(sum.minutes) + '</td>' +
                 '<td class="num cell-hours">' + money(sum.wage) + '</td>' +
                 '<td class="num cell-tips">' + money(sum.tips) + '</td>' +
-                '<td class="num cell-total">' + money(sum.wage + sum.tips) + '</td>' +
+                '<td class="num cell-total">' + money(groupTotal) + '</td>' +
+                '<td class="num cell-running">' + money(running) + '</td>' +
                 '</tr>';
         }).join('');
 
-        const totalLabels = { week: 'Ukupno tjedan', month: 'Ukupno mjesec', year: 'Ukupno godina', all: 'Ukupno' };
+        const totalLabels = {
+            week: 'Ukupno tjedan',
+            last30: 'Ukupno 30 dana',
+            month: 'Ukupno mjesec',
+            year: 'Ukupno godina',
+            all: 'Ukupno'
+        };
         $('reportFoot').innerHTML = groups.length
             ? '<tr>' +
                 '<td>' + totalLabels[period.type] + '</td>' +
@@ -425,6 +453,7 @@
                 '<td class="num cell-hours">' + money(totals.wage) + '</td>' +
                 '<td class="num cell-tips">' + money(totals.tips) + '</td>' +
                 '<td class="num cell-total">' + money(totals.wage + totals.tips) + '</td>' +
+                '<td class="num cell-running">' + money(totals.wage + totals.tips) + '</td>' +
                 '</tr>'
             : '';
 
@@ -437,6 +466,7 @@
         });
         renderShifts();
         renderReport();
+        updateStorageStatus();
     }
 
     /* =============== izvoz =============== */
@@ -566,10 +596,16 @@
             }
             Store.upsert(shift);
             const wasEditing = Boolean(editingId);
+            const saveFailed = Boolean(Store.status().error);
             resetForm();
             renderAll();
             scheduleSync();
-            toast(wasEditing ? 'Smjena je ažurirana.' : 'Smjena je spremljena.');
+            toast(
+                saveFailed
+                    ? 'Smjena nije spremljena na uređaj — pogledaj upozorenje na vrhu stranice.'
+                    : (wasEditing ? 'Smjena je ažurirana i spremljena na uređaj.' : 'Smjena je spremljena na uređaj.'),
+                saveFailed
+            );
         });
 
         $('shiftCancelBtn').addEventListener('click', () => {
@@ -627,7 +663,8 @@
 
         const shift = (direction) => {
             const anchor = period.anchor;
-            if (period.type === 'week') period.anchor = addDays(anchor, 7 * direction);
+            if (period.type === 'last30') period.anchor = addDays(anchor, 30 * direction);
+            else if (period.type === 'week') period.anchor = addDays(anchor, 7 * direction);
             else if (period.type === 'month') period.anchor = new Date(anchor.getFullYear(), anchor.getMonth() + direction, 1, 12);
             else if (period.type === 'year') period.anchor = new Date(anchor.getFullYear() + direction, anchor.getMonth(), 1, 12);
             renderReport();
@@ -746,6 +783,43 @@
     /* =============== pokretanje =============== */
 
     /**
+     * Prikazuje stanje pohrane na uređaju: kad je zadnji put spremljeno i,
+     * ako preglednik pohranu ne dopušta, izričito upozorenje umjesto tihog
+     * gubitka podataka.
+     */
+    function updateStorageStatus() {
+        const state = Store.status();
+        const banner = $('storageWarning');
+        const info = $('storageInfo');
+
+        if (!state.available || state.error) {
+            banner.hidden = false;
+            banner.textContent = 'Ovaj preglednik ne dopušta spremanje podataka na uređaj' +
+                (state.error ? ' (' + state.error + ')' : '') +
+                '. Unosi će nestati zatvaranjem stranice — otvori datoteku preko punog file:/// puta ' +
+                'ili instaliraj aplikaciju na početni zaslon, a podatke u međuvremenu spremi kroz Preuzmi JSON.';
+            info.textContent = 'Spremanje na uređaj trenutno ne radi.';
+            return;
+        }
+
+        banner.hidden = true;
+        info.textContent = state.savedAt
+            ? 'Zadnje spremanje na uređaj: ' + state.savedAt.toLocaleString('hr-HR') + '.'
+            : 'Podaci se spremaju na ovaj uređaj čim uneseš ili izmijeniš smjenu.';
+    }
+
+    /**
+     * Traži trajnu pohranu kako mobilni preglednik podatke ne bi izbacio kad
+     * mu ponestane prostora. Odbijanje nije greška — pohrana i dalje radi.
+     */
+    function requestPersistentStorage() {
+        if (!navigator.storage || typeof navigator.storage.persist !== 'function') return;
+        navigator.storage.persisted()
+            .then((already) => (already ? true : navigator.storage.persist()))
+            .catch(() => {});
+    }
+
+    /**
      * Registracija service workera — nakon prvog otvaranja aplikacija radi
      * bez mreže i može se instalirati na početni zaslon. Traži sigurni
      * kontekst (https ili localhost); s file:// se preskače.
@@ -772,6 +846,7 @@
         resetForm();
         renderAll();
         setSyncStatus('Lokalno', 'off');
+        requestPersistentStorage();
         registerServiceWorker();
 
         if (settings.driveClientId) {

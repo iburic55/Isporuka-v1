@@ -28,6 +28,8 @@
     </div>
 </header>
 
+<p id="storageWarning" class="banner" role="alert" hidden></p>
+
 <nav class="tabs" role="tablist">
     <button type="button" class="tab is-active" role="tab" data-tab="shifts">Smjene</button>
     <button type="button" class="tab" role="tab" data-tab="reports">Izvještaji</button>
@@ -133,6 +135,7 @@
                 <div class="period">
                     <div class="segmented" role="group" aria-label="Vrsta razdoblja">
                         <button type="button" class="segmented__btn is-active" data-period="week">Tjedan</button>
+                        <button type="button" class="segmented__btn" data-period="last30">30 dana</button>
                         <button type="button" class="segmented__btn" data-period="month">Mjesec</button>
                         <button type="button" class="segmented__btn" data-period="year">Godina</button>
                         <button type="button" class="segmented__btn" data-period="all">Sve</button>
@@ -160,6 +163,7 @@
                         <th class="num">Od sati</th>
                         <th class="num">Bakšiš</th>
                         <th class="num">Ukupno</th>
+                        <th class="num">Kumulativno</th>
                     </tr>
                     </thead>
                     <tbody id="reportBody"></tbody>
@@ -232,6 +236,7 @@
         <div class="card">
             <h2 class="card__title">Sigurnosna kopija</h2>
             <p class="hint">Ručni izvoz/uvoz svih podataka u JSON datoteku.</p>
+            <p id="storageInfo" class="hint" aria-live="polite"></p>
             <div class="form__actions">
                 <button type="button" id="exportJsonBtn" class="btn">Preuzmi JSON</button>
                 <label class="btn btn--file">

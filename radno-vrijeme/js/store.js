@@ -75,12 +75,41 @@ const Store = (() => {
         return result;
     }
 
+    let lastSavedAt = null;
+    let lastError = null;
+
     function persist() {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            lastSavedAt = new Date();
+            lastError = null;
+            return true;
         } catch (err) {
-            console.error('Spremanje u localStorage nije uspjelo', err);
+            // Tiho gubljenje podataka je najgori ishod — greška se prosljeđuje sučelju.
+            lastError = err && err.message ? err.message : String(err);
+            console.error('Spremanje na uređaj nije uspjelo', err);
+            return false;
         }
+    }
+
+    /** Provjerava smije li se uopće pisati u pohranu ovog preglednika. */
+    function storageAvailable() {
+        try {
+            const probe = STORAGE_KEY + '.probe';
+            localStorage.setItem(probe, '1');
+            localStorage.removeItem(probe);
+            return true;
+        } catch (err) {
+            return false;
+        }
+    }
+
+    function status() {
+        return {
+            available: storageAvailable(),
+            savedAt: lastSavedAt,
+            error: lastError
+        };
     }
 
     function load() {
@@ -189,6 +218,7 @@ const Store = (() => {
     return {
         load, all, get, upsert, remove,
         getSettings, saveSettings,
-        snapshot, merge, replace, clear, newId
+        snapshot, merge, replace, clear, newId,
+        status, storageAvailable
     };
 })();

@@ -345,6 +345,20 @@ input:focus-visible, select:focus-visible {
     font-size: 0.875rem;
 }
 
+.banner {
+    max-width: 60rem;
+    margin: 0 auto 1rem;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--danger);
+    border-left-width: 4px;
+    border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--danger);
+    font-size: 0.875rem;
+}
+
+.banner[hidden] { display: none; }
+
 .empty {
     margin: 0;
     color: var(--ink-faint);
@@ -428,6 +442,8 @@ input:focus-visible, select:focus-visible {
 .cell-hours { color: var(--hours); }
 .cell-tips { color: var(--tips); }
 .cell-total { font-weight: 600; }
+/* Kumulativa je kontekst, ne dnevni rezultat — stoji tiše od stupca „Ukupno". */
+.cell-running { color: var(--ink-faint); }
 .cell-note { color: var(--ink-faint); white-space: normal; max-width: 14rem; }
 
 .row-actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
@@ -604,6 +620,8 @@ input:focus-visible, select:focus-visible {
     <button type="button" id="driveDisconnectBtn"></button>
 </div>
 
+<p id="storageWarning" class="banner" role="alert" hidden></p>
+
 <nav class="tabs" role="tablist">
     <button type="button" class="tab is-active" role="tab" data-tab="shifts">Smjene</button>
     <button type="button" class="tab" role="tab" data-tab="reports">Izvještaji</button>
@@ -709,6 +727,7 @@ input:focus-visible, select:focus-visible {
                 <div class="period">
                     <div class="segmented" role="group" aria-label="Vrsta razdoblja">
                         <button type="button" class="segmented__btn is-active" data-period="week">Tjedan</button>
+                        <button type="button" class="segmented__btn" data-period="last30">30 dana</button>
                         <button type="button" class="segmented__btn" data-period="month">Mjesec</button>
                         <button type="button" class="segmented__btn" data-period="year">Godina</button>
                         <button type="button" class="segmented__btn" data-period="all">Sve</button>
@@ -736,6 +755,7 @@ input:focus-visible, select:focus-visible {
                         <th class="num">Od sati</th>
                         <th class="num">Bakšiš</th>
                         <th class="num">Ukupno</th>
+                        <th class="num">Kumulativno</th>
                     </tr>
                     </thead>
                     <tbody id="reportBody"></tbody>
@@ -781,6 +801,7 @@ input:focus-visible, select:focus-visible {
         <div class="card">
             <h2 class="card__title">Sigurnosna kopija</h2>
             <p class="hint">Ručni izvoz/uvoz svih podataka u JSON datoteku.</p>
+            <p id="storageInfo" class="hint" aria-live="polite"></p>
             <div class="form__actions">
                 <button type="button" id="exportJsonBtn" class="btn">Preuzmi JSON</button>
                 <label class="btn btn--file">
@@ -883,12 +904,41 @@ const Store = (() => {
         return result;
     }
 
+    let lastSavedAt = null;
+    let lastError = null;
+
     function persist() {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            lastSavedAt = new Date();
+            lastError = null;
+            return true;
         } catch (err) {
-            console.error('Spremanje u localStorage nije uspjelo', err);
+            // Tiho gubljenje podataka je najgori ishod — greška se prosljeđuje sučelju.
+            lastError = err && err.message ? err.message : String(err);
+            console.error('Spremanje na uređaj nije uspjelo', err);
+            return false;
         }
+    }
+
+    /** Provjerava smije li se uopće pisati u pohranu ovog preglednika. */
+    function storageAvailable() {
+        try {
+            const probe = STORAGE_KEY + '.probe';
+            localStorage.setItem(probe, '1');
+            localStorage.removeItem(probe);
+            return true;
+        } catch (err) {
+            return false;
+        }
+    }
+
+    function status() {
+        return {
+            available: storageAvailable(),
+            savedAt: lastSavedAt,
+            error: lastError
+        };
     }
 
     function load() {
@@ -997,7 +1047,8 @@ const Store = (() => {
     return {
         load, all, get, upsert, remove,
         getSettings, saveSettings,
-        snapshot, merge, replace, clear, newId
+        snapshot, merge, replace, clear, newId,
+        status, storageAvailable
     };
 })();
 
@@ -1142,8 +1193,18 @@ const Drive = {
         });
     }
 
+    /** Prozor od 30 dana koji završava na zadanom datumu. */
+    function last30Range(anchor) {
+        const end = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate(), 12);
+        return { start: addDays(end, -29), end };
+    }
+
     function currentPeriodRange() {
         const anchor = period.anchor;
+        if (period.type === 'last30') {
+            const span = last30Range(anchor);
+            return { from: toIsoDate(span.start), to: toIsoDate(span.end) };
+        }
         if (period.type === 'week') {
             const start = startOfWeek(anchor);
             return { from: toIsoDate(start), to: toIsoDate(addDays(start, 6)) };
@@ -1161,6 +1222,13 @@ const Drive = {
 
     function periodLabel() {
         const anchor = period.anchor;
+        if (period.type === 'last30') {
+            const span = last30Range(anchor);
+            const isToday = toIsoDate(span.end) === toIsoDate(new Date());
+            const range = span.start.getDate() + '.' + (span.start.getMonth() + 1) + '. – ' +
+                span.end.getDate() + '.' + (span.end.getMonth() + 1) + '. ' + span.end.getFullYear();
+            return (isToday ? 'Zadnjih 30 dana: ' : '') + range;
+        }
         if (period.type === 'week') {
             const start = startOfWeek(anchor);
             const end = addDays(start, 6);
@@ -1184,7 +1252,7 @@ const Drive = {
 
         shifts.forEach((shift) => {
             const date = parseDate(shift.date);
-            if (period.type === 'week' || period.type === 'month') {
+            if (period.type === 'week' || period.type === 'month' || period.type === 'last30') {
                 put(shift.date, formatDateShort(shift.date), shift.date, shift);
             } else if (period.type === 'year') {
                 const key = date.getFullYear() + '-' + pad(date.getMonth() + 1);
@@ -1390,7 +1458,7 @@ const Drive = {
         $('periodLabel').textContent = periodLabel();
         $('reportTotals').innerHTML = totalsMarkup(totals, { extended: true });
 
-        const groupHeaders = { week: 'Dan', month: 'Dan', year: 'Mjesec', all: 'Godina' };
+        const groupHeaders = { week: 'Dan', last30: 'Dan', month: 'Dan', year: 'Mjesec', all: 'Godina' };
         $('reportGroupHeader').textContent = groupHeaders[period.type];
 
         const groups = groupShifts(shifts);
@@ -1421,19 +1489,30 @@ const Drive = {
             '</div>'
             : '';
 
+        // Kumulativa raste kroz razdoblje: svaki redak nosi zbroj svih dotad.
+        let running = 0;
         $('reportBody').innerHTML = groups.map((group) => {
             const sum = aggregate(group.shifts);
+            const groupTotal = sum.wage + sum.tips;
+            running += groupTotal;
             return '<tr>' +
                 '<td>' + escapeHtml(group.label) + '</td>' +
                 '<td class="num">' + sum.count + '</td>' +
                 '<td class="num">' + formatHours(sum.minutes) + '</td>' +
                 '<td class="num cell-hours">' + money(sum.wage) + '</td>' +
                 '<td class="num cell-tips">' + money(sum.tips) + '</td>' +
-                '<td class="num cell-total">' + money(sum.wage + sum.tips) + '</td>' +
+                '<td class="num cell-total">' + money(groupTotal) + '</td>' +
+                '<td class="num cell-running">' + money(running) + '</td>' +
                 '</tr>';
         }).join('');
 
-        const totalLabels = { week: 'Ukupno tjedan', month: 'Ukupno mjesec', year: 'Ukupno godina', all: 'Ukupno' };
+        const totalLabels = {
+            week: 'Ukupno tjedan',
+            last30: 'Ukupno 30 dana',
+            month: 'Ukupno mjesec',
+            year: 'Ukupno godina',
+            all: 'Ukupno'
+        };
         $('reportFoot').innerHTML = groups.length
             ? '<tr>' +
                 '<td>' + totalLabels[period.type] + '</td>' +
@@ -1442,6 +1521,7 @@ const Drive = {
                 '<td class="num cell-hours">' + money(totals.wage) + '</td>' +
                 '<td class="num cell-tips">' + money(totals.tips) + '</td>' +
                 '<td class="num cell-total">' + money(totals.wage + totals.tips) + '</td>' +
+                '<td class="num cell-running">' + money(totals.wage + totals.tips) + '</td>' +
                 '</tr>'
             : '';
 
@@ -1454,6 +1534,7 @@ const Drive = {
         });
         renderShifts();
         renderReport();
+        updateStorageStatus();
     }
 
     /* =============== izvoz =============== */
@@ -1583,10 +1664,16 @@ const Drive = {
             }
             Store.upsert(shift);
             const wasEditing = Boolean(editingId);
+            const saveFailed = Boolean(Store.status().error);
             resetForm();
             renderAll();
             scheduleSync();
-            toast(wasEditing ? 'Smjena je ažurirana.' : 'Smjena je spremljena.');
+            toast(
+                saveFailed
+                    ? 'Smjena nije spremljena na uređaj — pogledaj upozorenje na vrhu stranice.'
+                    : (wasEditing ? 'Smjena je ažurirana i spremljena na uređaj.' : 'Smjena je spremljena na uređaj.'),
+                saveFailed
+            );
         });
 
         $('shiftCancelBtn').addEventListener('click', () => {
@@ -1644,7 +1731,8 @@ const Drive = {
 
         const shift = (direction) => {
             const anchor = period.anchor;
-            if (period.type === 'week') period.anchor = addDays(anchor, 7 * direction);
+            if (period.type === 'last30') period.anchor = addDays(anchor, 30 * direction);
+            else if (period.type === 'week') period.anchor = addDays(anchor, 7 * direction);
             else if (period.type === 'month') period.anchor = new Date(anchor.getFullYear(), anchor.getMonth() + direction, 1, 12);
             else if (period.type === 'year') period.anchor = new Date(anchor.getFullYear() + direction, anchor.getMonth(), 1, 12);
             renderReport();
@@ -1763,6 +1851,43 @@ const Drive = {
     /* =============== pokretanje =============== */
 
     /**
+     * Prikazuje stanje pohrane na uređaju: kad je zadnji put spremljeno i,
+     * ako preglednik pohranu ne dopušta, izričito upozorenje umjesto tihog
+     * gubitka podataka.
+     */
+    function updateStorageStatus() {
+        const state = Store.status();
+        const banner = $('storageWarning');
+        const info = $('storageInfo');
+
+        if (!state.available || state.error) {
+            banner.hidden = false;
+            banner.textContent = 'Ovaj preglednik ne dopušta spremanje podataka na uređaj' +
+                (state.error ? ' (' + state.error + ')' : '') +
+                '. Unosi će nestati zatvaranjem stranice — otvori datoteku preko punog file:/// puta ' +
+                'ili instaliraj aplikaciju na početni zaslon, a podatke u međuvremenu spremi kroz Preuzmi JSON.';
+            info.textContent = 'Spremanje na uređaj trenutno ne radi.';
+            return;
+        }
+
+        banner.hidden = true;
+        info.textContent = state.savedAt
+            ? 'Zadnje spremanje na uređaj: ' + state.savedAt.toLocaleString('hr-HR') + '.'
+            : 'Podaci se spremaju na ovaj uređaj čim uneseš ili izmijeniš smjenu.';
+    }
+
+    /**
+     * Traži trajnu pohranu kako mobilni preglednik podatke ne bi izbacio kad
+     * mu ponestane prostora. Odbijanje nije greška — pohrana i dalje radi.
+     */
+    function requestPersistentStorage() {
+        if (!navigator.storage || typeof navigator.storage.persist !== 'function') return;
+        navigator.storage.persisted()
+            .then((already) => (already ? true : navigator.storage.persist()))
+            .catch(() => {});
+    }
+
+    /**
      * Registracija service workera — nakon prvog otvaranja aplikacija radi
      * bez mreže i može se instalirati na početni zaslon. Traži sigurni
      * kontekst (https ili localhost); s file:// se preskače.
@@ -1789,6 +1914,7 @@ const Drive = {
         resetForm();
         renderAll();
         setSyncStatus('Spremljeno na uređaju', 'on');
+        requestPersistentStorage();
 
         if (settings.driveClientId) {
             configureDrive();
