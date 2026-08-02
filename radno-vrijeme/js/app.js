@@ -167,14 +167,8 @@
 
         shifts.forEach((shift) => {
             const date = parseDate(shift.date);
-            if (period.type === 'week') {
+            if (period.type === 'week' || period.type === 'month') {
                 put(shift.date, formatDateShort(shift.date), shift.date, shift);
-            } else if (period.type === 'month') {
-                const start = startOfWeek(date);
-                const key = toIsoDate(start);
-                // Tjedan zna prelaziti iz mjeseca u mjesec, pa uz broj ide i početni datum.
-                const label = isoWeek(start).week + '. tj. (' + start.getDate() + '.' + (start.getMonth() + 1) + '.)';
-                put(key, label, key, shift);
             } else if (period.type === 'year') {
                 const key = date.getFullYear() + '-' + pad(date.getMonth() + 1);
                 put(key, MONTHS[date.getMonth()], key, shift);
@@ -371,45 +365,6 @@
 
     /* =============== izvještaji =============== */
 
-    /**
-     * Procjena za cijeli mjesec: ostvareno se linearno skalira s protekle
-     * na sve dane u mjesecu. Ima smisla samo za mjesec koji je u tijeku —
-     * za završene mjesece prikazan je stvarni zbroj.
-     */
-    function renderProjection(shifts) {
-        const box = $('projection');
-        const anchor = period.anchor;
-        const today = new Date();
-        const isCurrentMonth = anchor.getFullYear() === today.getFullYear() &&
-            anchor.getMonth() === today.getMonth();
-
-        if (period.type !== 'month' || !isCurrentMonth || !shifts.length) {
-            box.hidden = true;
-            return;
-        }
-
-        const daysInMonth = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate();
-        const elapsedDays = today.getDate();
-        const factor = daysInMonth / elapsedDays;
-        const totals = aggregate(shifts);
-        const projected = {
-            count: Math.round(totals.count * factor),
-            minutes: totals.minutes * factor,
-            wage: totals.wage * factor,
-            tips: totals.tips * factor
-        };
-
-        box.hidden = false;
-        $('projectionTotals').innerHTML = totalsMarkup(projected);
-
-        const remaining = daysInMonth - elapsedDays;
-        const pace = money((totals.wage + totals.tips) / elapsedDays);
-        $('projectionNote').textContent = 'Temeljeno na ' + elapsedDays + ' od ' + daysInMonth +
-            ' dana (' + pace + ' dnevno), preostalo ' + remaining +
-            (remaining === 1 ? ' dan' : ' dana') + '. Procjena pretpostavlja isti ritam rada do kraja mjeseca' +
-            (elapsedDays < 7 ? ' — s ovako malo evidentiranih dana zna znatno odstupati.' : '.');
-    }
-
     function renderReport() {
         const range = currentPeriodRange();
         const shifts = shiftsInRange(range.from, range.to);
@@ -417,7 +372,9 @@
 
         $('periodLabel').textContent = periodLabel();
         $('reportTotals').innerHTML = totalsMarkup(totals, { extended: true });
-        renderProjection(shifts);
+
+        const groupHeaders = { week: 'Dan', month: 'Dan', year: 'Mjesec', all: 'Godina' };
+        $('reportGroupHeader').textContent = groupHeaders[period.type];
 
         const groups = groupShifts(shifts);
         const maxTotal = groups.reduce((max, group) => {
@@ -458,6 +415,18 @@
                 '<td class="num cell-total">' + money(sum.wage + sum.tips) + '</td>' +
                 '</tr>';
         }).join('');
+
+        const totalLabels = { week: 'Ukupno tjedan', month: 'Ukupno mjesec', year: 'Ukupno godina', all: 'Ukupno' };
+        $('reportFoot').innerHTML = groups.length
+            ? '<tr>' +
+                '<td>' + totalLabels[period.type] + '</td>' +
+                '<td class="num">' + totals.count + '</td>' +
+                '<td class="num">' + formatHours(totals.minutes) + '</td>' +
+                '<td class="num cell-hours">' + money(totals.wage) + '</td>' +
+                '<td class="num cell-tips">' + money(totals.tips) + '</td>' +
+                '<td class="num cell-total">' + money(totals.wage + totals.tips) + '</td>' +
+                '</tr>'
+            : '';
 
         $('reportEmpty').hidden = groups.length > 0;
     }

@@ -138,12 +138,6 @@
 
             <div id="reportTotals" class="totals"></div>
 
-            <div id="projection" class="card__section" hidden>
-                <h3 class="card__subtitle">Procjena za cijeli mjesec</h3>
-                <div id="projectionTotals" class="totals totals--projected"></div>
-                <p id="projectionNote" class="hint"></p>
-            </div>
-
             <h3 class="card__subtitle">Raspodjela</h3>
             <div id="reportChart" class="chart"></div>
 
@@ -151,7 +145,7 @@
                 <table class="table">
                     <thead>
                     <tr>
-                        <th>Razdoblje</th>
+                        <th id="reportGroupHeader">Dan</th>
                         <th class="num">Smjena</th>
                         <th class="num">Sati</th>
                         <th class="num">Od sati</th>
@@ -160,6 +154,7 @@
                     </tr>
                     </thead>
                     <tbody id="reportBody"></tbody>
+                    <tfoot id="reportFoot"></tfoot>
                 </table>
             </div>
             <p id="reportEmpty" class="empty" hidden>Nema smjena u odabranom razdoblju.</p>
