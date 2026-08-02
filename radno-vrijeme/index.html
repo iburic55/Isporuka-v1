@@ -5,7 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Evidencija radnog vremena i bakšiša</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⏱️</text></svg>">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#0F8F72">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Radno vrijeme">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body>
 <header class="app-header">
@@ -15,7 +22,9 @@
     </div>
     <div class="sync-box">
         <span id="syncStatus" class="sync-status sync-status--off">Lokalno</span>
+        <!-- drive:start -->
         <button type="button" id="syncNowBtn" class="btn btn--ghost" title="Sinkroniziraj s Google Driveom">Sinkroniziraj</button>
+        <!-- drive:end -->
     </div>
 </header>
 
@@ -186,6 +195,7 @@
                 </label>
             </div>
 
+            <!-- drive:start -->
             <h2 class="card__title">Google Drive</h2>
             <p class="hint">
                 Podaci se uvijek spremaju lokalno u ovaj preglednik. Uz Client ID
@@ -207,11 +217,14 @@
                     <span>Automatski sinkroniziraj nakon promjene</span>
                 </label>
             </div>
+            <div class="form__actions">
+                <button type="button" id="driveConnectBtn" class="btn">Poveži s Driveom</button>
+                <button type="button" id="driveDisconnectBtn" class="btn btn--ghost">Odspoji</button>
+            </div>
+            <!-- drive:end -->
 
             <div class="form__actions">
                 <button type="submit" class="btn btn--primary">Spremi postavke</button>
-                <button type="button" id="driveConnectBtn" class="btn">Poveži s Driveom</button>
-                <button type="button" id="driveDisconnectBtn" class="btn btn--ghost">Odspoji</button>
             </div>
             <p id="settingsMessage" class="preview" aria-live="polite"></p>
         </form>
@@ -243,9 +256,11 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
+<!-- drive:start -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="js/store.js"></script>
 <script src="js/drive.js"></script>
+<!-- drive:end -->
+<script src="js/store.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

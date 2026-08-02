@@ -1,3 +1,1020 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Evidencija radnog vremena i bakšiša</title>
+    <style>
+/*
+ * styles.css — vizualni identitet aplikacije.
+ * Koncept: knjiga prihoda / blok računa — serifni naslovi, tabularne brojke,
+ * tanke linije umjesto teških kartica. Zelena nosi zaradu od sati,
+ * jantarna bakšiš; boja je nositelj podatka, ne ukras.
+ */
+
+:root {
+    color-scheme: light dark;
+
+    --ink: #12201C;
+    --ink-soft: #4A5C56;
+    --ink-faint: #7B8C86;
+    --ground: #F6F8F5;
+    --panel: #FFFFFF;
+    --rule: #DCE4DF;
+    --rule-strong: #C3CFC9;
+
+    --hours: #0F8F72;
+    --hours-soft: rgba(15, 143, 114, 0.12);
+    --tips: #C0801C;
+    --tips-soft: rgba(192, 128, 28, 0.14);
+    --danger: #B0402F;
+
+    --shadow: 0 1px 2px rgba(18, 32, 28, 0.06);
+    --radius: 6px;
+
+    --font-display: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    --step-0: 0.9375rem;
+    --step-1: 1.0625rem;
+    --step-2: 1.375rem;
+    --step-3: 1.875rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ink: #E6EDE9;
+        --ink-soft: #A6B5AF;
+        --ink-faint: #77877F;
+        --ground: #0F1513;
+        --panel: #161E1B;
+        --rule: #27332E;
+        --rule-strong: #35443E;
+
+        --hours: #4FC7A5;
+        --hours-soft: rgba(79, 199, 165, 0.14);
+        --tips: #E0A94A;
+        --tips-soft: rgba(224, 169, 74, 0.16);
+        --danger: #E0705C;
+
+        --shadow: none;
+    }
+}
+
+/* Prekidač teme mora nadjačati medijski upit u oba smjera. */
+:root[data-theme="dark"] {
+    --ink: #E6EDE9;
+    --ink-soft: #A6B5AF;
+    --ink-faint: #77877F;
+    --ground: #0F1513;
+    --panel: #161E1B;
+    --rule: #27332E;
+    --rule-strong: #35443E;
+    --hours: #4FC7A5;
+    --hours-soft: rgba(79, 199, 165, 0.14);
+    --tips: #E0A94A;
+    --tips-soft: rgba(224, 169, 74, 0.16);
+    --danger: #E0705C;
+    --shadow: none;
+}
+
+:root[data-theme="light"] {
+    --ink: #12201C;
+    --ink-soft: #4A5C56;
+    --ink-faint: #7B8C86;
+    --ground: #F6F8F5;
+    --panel: #FFFFFF;
+    --rule: #DCE4DF;
+    --rule-strong: #C3CFC9;
+    --hours: #0F8F72;
+    --hours-soft: rgba(15, 143, 114, 0.12);
+    --tips: #C0801C;
+    --tips-soft: rgba(192, 128, 28, 0.14);
+    --danger: #B0402F;
+    --shadow: 0 1px 2px rgba(18, 32, 28, 0.06);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 0 1rem 4rem;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+}
+
+main {
+    max-width: 60rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+:focus-visible {
+    outline: 2px solid var(--hours);
+    outline-offset: 2px;
+}
+
+/* ---------- zaglavlje ---------- */
+
+.app-header {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 1.75rem 0 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--rule);
+}
+
+.app-header h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+}
+
+.app-header__subtitle {
+    margin: 0.25rem 0 0;
+    color: var(--ink-faint);
+    font-size: 0.8125rem;
+}
+
+.sync-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sync-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--rule-strong);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    white-space: nowrap;
+}
+
+.sync-status::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.sync-status--on { color: var(--hours); border-color: var(--hours); background: var(--hours-soft); }
+.sync-status--busy { color: var(--tips); border-color: var(--tips); background: var(--tips-soft); }
+.sync-status--error { color: var(--danger); border-color: var(--danger); }
+
+/* ---------- kartice / navigacija ---------- */
+
+.tabs {
+    max-width: 60rem;
+    margin: 0 auto 1.25rem;
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--rule);
+}
+
+.tab {
+    appearance: none;
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 0.6rem 0.9rem;
+    font: inherit;
+    color: var(--ink-faint);
+    cursor: pointer;
+}
+
+.tab:hover { color: var(--ink); }
+.tab.is-active { color: var(--ink); border-bottom-color: var(--hours); }
+
+.tab-panel { display: none; flex-direction: column; gap: 1.25rem; }
+.tab-panel.is-active { display: flex; }
+
+.card {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.card__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.card__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 400;
+}
+
+.card__subtitle {
+    margin: 0;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+
+.hint {
+    margin: 0;
+    color: var(--ink-faint);
+    font-size: 0.8125rem;
+    max-width: 65ch;
+}
+
+.hint code {
+    font-size: 0.95em;
+    background: var(--ground);
+    padding: 0.05rem 0.25rem;
+    border-radius: 3px;
+}
+
+/* ---------- forme ---------- */
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: 0.75rem 1rem;
+}
+
+.field { display: flex; flex-direction: column; gap: 0.3rem; }
+.field--wide { grid-column: 1 / -1; }
+.field--inline { flex-direction: row; align-items: center; gap: 0.4rem; }
+.field--inline input { width: auto; }
+
+.filter { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.field--check { flex-direction: row; align-items: center; gap: 0.5rem; grid-column: 1 / -1; }
+
+.field > span {
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+
+input[type="date"], input[type="time"], input[type="number"], input[type="text"], select {
+    font: inherit;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--rule-strong);
+    border-radius: 4px;
+    padding: 0.45rem 0.55rem;
+    min-width: 0;
+    width: 100%;
+}
+
+input[type="number"] { font-variant-numeric: tabular-nums; }
+
+input:focus-visible, select:focus-visible {
+    border-color: var(--hours);
+    outline: 2px solid var(--hours-soft);
+    outline-offset: 0;
+}
+
+.form__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn {
+    appearance: none;
+    font: inherit;
+    cursor: pointer;
+    padding: 0.5rem 0.9rem;
+    border-radius: 4px;
+    border: 1px solid var(--rule-strong);
+    background: var(--panel);
+    color: var(--ink);
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.btn:hover { border-color: var(--ink-faint); }
+
+.btn--primary {
+    background: var(--hours);
+    border-color: var(--hours);
+    color: #FFFFFF;
+}
+
+.btn--primary:hover { filter: brightness(1.06); }
+.btn--ghost { background: none; border-color: transparent; color: var(--ink-soft); }
+.btn--ghost:hover { border-color: var(--rule-strong); color: var(--ink); }
+.btn--danger { color: var(--danger); border-color: var(--danger); background: none; }
+.btn--file { display: inline-flex; align-items: center; }
+
+.preview {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--ink-soft);
+    min-height: 1.25rem;
+}
+
+.error {
+    margin: 0;
+    color: var(--danger);
+    font-size: 0.875rem;
+}
+
+.empty {
+    margin: 0;
+    color: var(--ink-faint);
+    font-style: italic;
+    padding: 0.75rem 0;
+}
+
+/* ---------- zbrojevi ---------- */
+
+.totals {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 1px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.total {
+    background: var(--panel);
+    /* Obris umjesto pozadine mreže: prazna mjesta u zadnjem retku ostaju čista. */
+    outline: 1px solid var(--rule);
+    padding: 0.75rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.total__label {
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+
+.total__value {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+}
+
+.total__value--hours { color: var(--hours); }
+.total__value--tips { color: var(--tips); }
+.total__note { font-size: 0.75rem; color: var(--ink-faint); }
+.totals--compact .total__value { font-size: var(--step-1); }
+
+
+/* ---------- tablice ---------- */
+
+.table-wrap { overflow-x: auto; }
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.875rem;
+}
+
+.table th, .table td {
+    padding: 0.5rem 0.6rem;
+    text-align: left;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+}
+
+.table th {
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    border-bottom-color: var(--rule-strong);
+}
+
+.table .num, .table td.num { text-align: right; }
+.table tbody tr:hover { background: var(--ground); }
+.table tfoot td { font-weight: 600; border-bottom: 0; border-top: 2px solid var(--rule-strong); }
+
+.cell-hours { color: var(--hours); }
+.cell-tips { color: var(--tips); }
+.cell-total { font-weight: 600; }
+.cell-note { color: var(--ink-faint); white-space: normal; max-width: 14rem; }
+
+.row-actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
+
+.icon-btn {
+    appearance: none;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--ink-faint);
+    font: inherit;
+    font-size: 0.8125rem;
+    padding: 0.2rem 0.45rem;
+    cursor: pointer;
+}
+
+.icon-btn:hover { color: var(--ink); border-color: var(--rule-strong); }
+.icon-btn--danger:hover { color: var(--danger); border-color: var(--danger); }
+
+/* ---------- razdoblja i graf ---------- */
+
+.period { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+
+.segmented {
+    display: inline-flex;
+    border: 1px solid var(--rule-strong);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.segmented__btn {
+    appearance: none;
+    background: var(--panel);
+    border: 0;
+    border-right: 1px solid var(--rule-strong);
+    font: inherit;
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.7rem;
+    color: var(--ink-soft);
+    cursor: pointer;
+}
+
+.segmented__btn:last-child { border-right: 0; }
+.segmented__btn.is-active { background: var(--hours); color: #FFFFFF; }
+
+.period__nav { display: flex; align-items: center; gap: 0.25rem; }
+
+.period__label {
+    min-width: 11rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.chart { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.chart__row {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr auto;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.8125rem;
+}
+
+.chart__label { color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.chart__bars {
+    display: flex;
+    height: 0.9rem;
+    background: var(--ground);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.chart__bar { height: 100%; }
+.chart__bar--hours { background: var(--hours); }
+.chart__bar--tips { background: var(--tips); }
+.chart__value { font-variant-numeric: tabular-nums; color: var(--ink-soft); white-space: nowrap; }
+
+.legend { display: flex; gap: 1rem; font-size: 0.75rem; color: var(--ink-faint); }
+.legend__item { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+.legend__swatch { width: 0.7rem; height: 0.7rem; border-radius: 2px; }
+.legend__swatch--hours { background: var(--hours); }
+.legend__swatch--tips { background: var(--tips); }
+
+/* ---------- potvrda ---------- */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 16, 13, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 30;
+}
+
+.overlay[hidden] { display: none; }
+
+.modal {
+    background: var(--panel);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    max-width: 26rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.modal__text { margin: 0; }
+.modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+
+/* ---------- obavijest ---------- */
+
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--ground);
+    padding: 0.6rem 1rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    max-width: min(90vw, 30rem);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    z-index: 20;
+}
+
+.toast--error { background: var(--danger); color: #FFFFFF; }
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+}
+
+@media (max-width: 40rem) {
+    .app-header { padding-top: 1.25rem; }
+    .app-header h1 { font-size: var(--step-2); }
+    .period__label { min-width: 8rem; }
+    .chart__row { grid-template-columns: 4.5rem 1fr auto; }
+}
+
+    </style>
+    <meta name="theme-color" content="#0F8F72">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Radno vrijeme">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E⏱️%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<header class="app-header">
+    <div class="app-header__title">
+        <h1>Radno vrijeme i bakšiš</h1>
+        <p class="app-header__subtitle">Evidencija smjena, zarade po satnici i bakšiša</p>
+    </div>
+    <div class="sync-box">
+        <span id="syncStatus" class="sync-status sync-status--off">Lokalno</span>
+    </div>
+</header>
+
+<!-- Sinkronizacija ne postoji u ovoj verziji; skriveni elementi drže zajednički
+     app.js nepromijenjenim u odnosu na verziju s poslužiteljem. -->
+<div hidden>
+    <button type="button" id="syncNowBtn"></button>
+    <input type="text" id="settingsClientId" value="">
+    <input type="text" id="settingsFileName" value="radno-vrijeme.json">
+    <input type="checkbox" id="settingsAutoSync">
+    <button type="button" id="driveConnectBtn"></button>
+    <button type="button" id="driveDisconnectBtn"></button>
+</div>
+
+<nav class="tabs" role="tablist">
+    <button type="button" class="tab is-active" role="tab" data-tab="shifts">Smjene</button>
+    <button type="button" class="tab" role="tab" data-tab="reports">Izvještaji</button>
+    <button type="button" class="tab" role="tab" data-tab="settings">Postavke</button>
+</nav>
+
+<main>
+    <!-- ================= SMJENE ================= -->
+    <section id="tab-shifts" class="tab-panel is-active">
+        <form id="shiftForm" class="card form" novalidate>
+            <h2 id="shiftFormTitle" class="card__title">Nova smjena</h2>
+            <input type="hidden" id="shiftId">
+
+            <div class="grid">
+                <label class="field">
+                    <span>Datum</span>
+                    <input type="date" id="shiftDate" required>
+                </label>
+                <label class="field">
+                    <span>Početak</span>
+                    <input type="time" id="shiftStart" required>
+                </label>
+                <label class="field">
+                    <span>Kraj</span>
+                    <input type="time" id="shiftEnd" required>
+                </label>
+                <label class="field">
+                    <span>Pauza (min)</span>
+                    <input type="number" id="shiftBreak" min="0" step="5" value="0">
+                </label>
+                <label class="field">
+                    <span>Satnica (<span class="currency-label">EUR</span>/h)</span>
+                    <input type="number" id="shiftRate" min="0" step="0.01">
+                </label>
+                <label class="field">
+                    <span>Bakšiš (<span class="currency-label">EUR</span>)</span>
+                    <input type="number" id="shiftTips" min="0" step="0.01" value="0">
+                </label>
+                <label class="field field--wide">
+                    <span>Napomena</span>
+                    <input type="text" id="shiftNote" maxlength="200" placeholder="npr. vikend smjena, zamjena…">
+                </label>
+            </div>
+
+            <p id="shiftPreview" class="preview" aria-live="polite"></p>
+            <p id="shiftError" class="error" role="alert" hidden></p>
+
+            <div class="form__actions">
+                <button type="submit" class="btn btn--primary">Spremi smjenu</button>
+                <button type="button" id="shiftCancelBtn" class="btn btn--ghost" hidden>Odustani</button>
+            </div>
+        </form>
+
+        <div class="card">
+            <div class="card__head">
+                <h2 class="card__title">Evidentirane smjene</h2>
+                <div class="filter">
+                    <label class="field field--inline">
+                        <span>Od</span>
+                        <input type="date" id="filterFrom">
+                    </label>
+                    <label class="field field--inline">
+                        <span>Do</span>
+                        <input type="date" id="filterTo">
+                    </label>
+                    <button type="button" id="filterClearBtn" class="btn btn--ghost">Poništi</button>
+                </div>
+            </div>
+
+            <div id="shiftsSummary" class="totals totals--compact"></div>
+
+            <div class="table-wrap">
+                <table class="table" id="shiftsTable">
+                    <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Vrijeme</th>
+                        <th class="num">Pauza</th>
+                        <th class="num">Sati</th>
+                        <th class="num">Satnica</th>
+                        <th class="num">Od sati</th>
+                        <th class="num">Bakšiš</th>
+                        <th class="num">Ukupno</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody id="shiftsBody"></tbody>
+                </table>
+            </div>
+            <p id="shiftsEmpty" class="empty" hidden>Još nema unesenih smjena.</p>
+
+            <div class="form__actions">
+                <button type="button" id="exportCsvBtn" class="btn">Izvoz u CSV</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= IZVJEŠTAJI ================= -->
+    <section id="tab-reports" class="tab-panel">
+        <div class="card">
+            <div class="card__head">
+                <h2 class="card__title">Pregled razdoblja</h2>
+                <div class="period">
+                    <div class="segmented" role="group" aria-label="Vrsta razdoblja">
+                        <button type="button" class="segmented__btn is-active" data-period="week">Tjedan</button>
+                        <button type="button" class="segmented__btn" data-period="month">Mjesec</button>
+                        <button type="button" class="segmented__btn" data-period="year">Godina</button>
+                        <button type="button" class="segmented__btn" data-period="all">Sve</button>
+                    </div>
+                    <div class="period__nav">
+                        <button type="button" id="periodPrev" class="btn btn--ghost" aria-label="Prethodno razdoblje">‹</button>
+                        <span id="periodLabel" class="period__label"></span>
+                        <button type="button" id="periodNext" class="btn btn--ghost" aria-label="Sljedeće razdoblje">›</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="reportTotals" class="totals"></div>
+
+            <h3 class="card__subtitle">Raspodjela</h3>
+            <div id="reportChart" class="chart"></div>
+
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th id="reportGroupHeader">Dan</th>
+                        <th class="num">Smjena</th>
+                        <th class="num">Sati</th>
+                        <th class="num">Od sati</th>
+                        <th class="num">Bakšiš</th>
+                        <th class="num">Ukupno</th>
+                    </tr>
+                    </thead>
+                    <tbody id="reportBody"></tbody>
+                    <tfoot id="reportFoot"></tfoot>
+                </table>
+            </div>
+            <p id="reportEmpty" class="empty" hidden>Nema smjena u odabranom razdoblju.</p>
+
+            <div class="form__actions">
+                <button type="button" id="exportReportCsvBtn" class="btn">Izvoz razdoblja u CSV</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= POSTAVKE ================= -->
+    <section id="tab-settings" class="tab-panel">
+        <form id="settingsForm" class="card form">
+            <h2 class="card__title">Osnovne postavke</h2>
+            <div class="grid">
+                <label class="field">
+                    <span>Zadana satnica</span>
+                    <input type="number" id="settingsRate" min="0" step="0.01">
+                </label>
+                <label class="field">
+                    <span>Valuta</span>
+                    <select id="settingsCurrency">
+                        <option value="EUR">EUR (€)</option>
+                        <option value="BAM">BAM (KM)</option>
+                        <option value="RSD">RSD</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="CHF">CHF</option>
+                    </select>
+                </label>
+            </div>
+
+
+            <div class="form__actions">
+                <button type="submit" class="btn btn--primary">Spremi postavke</button>
+            </div>
+            <p id="settingsMessage" class="preview" aria-live="polite"></p>
+        </form>
+
+        <div class="card">
+            <h2 class="card__title">Sigurnosna kopija</h2>
+            <p class="hint">Ručni izvoz/uvoz svih podataka u JSON datoteku.</p>
+            <div class="form__actions">
+                <button type="button" id="exportJsonBtn" class="btn">Preuzmi JSON</button>
+                <label class="btn btn--file">
+                    Učitaj JSON
+                    <input type="file" id="importJsonInput" accept="application/json,.json" hidden>
+                </label>
+                <button type="button" id="clearDataBtn" class="btn btn--danger">Obriši sve podatke</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<div id="confirmOverlay" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmText">
+        <p id="confirmText" class="modal__text"></p>
+        <div class="modal__actions">
+            <button type="button" id="confirmCancel" class="btn btn--ghost">Odustani</button>
+            <button type="button" id="confirmOk" class="btn btn--danger">Potvrdi</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/*
+ * store.js — model podataka, lokalna pohrana i spajanje (merge) stanja.
+ *
+ * Stanje se drži u localStorage-u pa aplikacija radi i bez interneta.
+ * Svaki zapis nosi `updatedAt` i „nadgrobni" zapis (`deleted`) kako bi se
+ * lokalno i Drive stanje mogla spojiti bez gubitka podataka.
+ */
+const Store = (() => {
+    const STORAGE_KEY = 'radnoVrijeme.v1';
+    const VERSION = 1;
+
+    const nowIso = () => new Date().toISOString();
+
+    const newId = () => {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return window.crypto.randomUUID();
+        }
+        return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+    };
+
+    const defaultSettings = () => ({
+        hourlyRate: 0,
+        currency: 'EUR',
+        driveClientId: '',
+        driveFileName: 'radno-vrijeme.json',
+        autoSync: true,
+        updatedAt: nowIso()
+    });
+
+    const emptyState = () => ({
+        version: VERSION,
+        shifts: {},
+        settings: defaultSettings()
+    });
+
+    let state = emptyState();
+
+    /** Normalizira zapis smjene (obrana od ručno uređenog JSON-a). */
+    function normalizeShift(raw) {
+        if (!raw || typeof raw !== 'object' || !raw.id) return null;
+        return {
+            id: String(raw.id),
+            date: String(raw.date || ''),
+            start: String(raw.start || ''),
+            end: String(raw.end || ''),
+            breakMinutes: Number(raw.breakMinutes) || 0,
+            hourlyRate: Number(raw.hourlyRate) || 0,
+            tips: Number(raw.tips) || 0,
+            note: String(raw.note || ''),
+            deleted: raw.deleted === true,
+            updatedAt: String(raw.updatedAt || nowIso())
+        };
+    }
+
+    function normalizeState(raw) {
+        const result = emptyState();
+        if (!raw || typeof raw !== 'object') return result;
+
+        const shifts = raw.shifts;
+        if (shifts && typeof shifts === 'object') {
+            const list = Array.isArray(shifts) ? shifts : Object.values(shifts);
+            list.forEach((item) => {
+                const shift = normalizeShift(item);
+                if (shift) result.shifts[shift.id] = shift;
+            });
+        }
+
+        if (raw.settings && typeof raw.settings === 'object') {
+            result.settings = Object.assign(defaultSettings(), raw.settings, {
+                hourlyRate: Number(raw.settings.hourlyRate) || 0,
+                autoSync: raw.settings.autoSync !== false,
+                updatedAt: String(raw.settings.updatedAt || nowIso())
+            });
+        }
+        return result;
+    }
+
+    function persist() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (err) {
+            console.error('Spremanje u localStorage nije uspjelo', err);
+        }
+    }
+
+    function load() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            state = raw ? normalizeState(JSON.parse(raw)) : emptyState();
+        } catch (err) {
+            console.error('Čitanje lokalnih podataka nije uspjelo, krećem od praznog stanja', err);
+            state = emptyState();
+        }
+        return state;
+    }
+
+    /** Sve smjene bez obrisanih, najnovije prve. */
+    function all() {
+        return Object.values(state.shifts)
+            .filter((s) => !s.deleted)
+            .sort((a, b) => {
+                if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+                return (a.start || '') < (b.start || '') ? 1 : -1;
+            });
+    }
+
+    function get(id) {
+        const shift = state.shifts[id];
+        return shift && !shift.deleted ? Object.assign({}, shift) : null;
+    }
+
+    function upsert(input) {
+        // `id` ide zadnji: novi zapis nosi prazan id koji ovdje dobiva vrijednost.
+        const shift = normalizeShift(Object.assign({}, input, { id: input.id || newId() }));
+        shift.updatedAt = nowIso();
+        shift.deleted = false;
+        state.shifts[shift.id] = shift;
+        persist();
+        return shift;
+    }
+
+    /** Brisanje ostavlja nadgrobni zapis da se smjena ne vrati kroz sinkronizaciju. */
+    function remove(id) {
+        const existing = state.shifts[id];
+        if (!existing) return;
+        state.shifts[id] = Object.assign({}, existing, { deleted: true, updatedAt: nowIso() });
+        persist();
+    }
+
+    function getSettings() {
+        return Object.assign({}, state.settings);
+    }
+
+    function saveSettings(patch) {
+        state.settings = Object.assign({}, state.settings, patch, { updatedAt: nowIso() });
+        persist();
+        return getSettings();
+    }
+
+    function snapshot() {
+        return JSON.parse(JSON.stringify(state));
+    }
+
+    /**
+     * Spaja udaljeno stanje s lokalnim: za svaki zapis pobjeđuje noviji
+     * `updatedAt`. Vraća true ako se lokalno stanje promijenilo.
+     */
+    function merge(remoteRaw) {
+        const remote = normalizeState(remoteRaw);
+        let changed = false;
+
+        Object.values(remote.shifts).forEach((remoteShift) => {
+            const local = state.shifts[remoteShift.id];
+            if (!local || remoteShift.updatedAt > local.updatedAt) {
+                state.shifts[remoteShift.id] = remoteShift;
+                changed = true;
+            }
+        });
+
+        if (remote.settings.updatedAt > state.settings.updatedAt) {
+            // Client ID i naziv datoteke su postavke ovog uređaja/preglednika.
+            const local = state.settings;
+            state.settings = Object.assign({}, remote.settings, {
+                driveClientId: local.driveClientId || remote.settings.driveClientId,
+                driveFileName: local.driveFileName || remote.settings.driveFileName
+            });
+            changed = true;
+        }
+
+        if (changed) persist();
+        return changed;
+    }
+
+    /** Potpuna zamjena stanja (uvoz sigurnosne kopije). */
+    function replace(rawState) {
+        const incoming = normalizeState(rawState);
+        // Postavke Drive veze su vezane uz ovaj preglednik pa ih zadržavamo.
+        incoming.settings.driveClientId = state.settings.driveClientId || incoming.settings.driveClientId;
+        state = incoming;
+        persist();
+        return state;
+    }
+
+    function clear() {
+        state = emptyState();
+        persist();
+    }
+
+    return {
+        load, all, get, upsert, remove,
+        getSettings, saveSettings,
+        snapshot, merge, replace, clear, newId
+    };
+})();
+
+/*
+ * Zamjena za drive.js: prijava na Google zahtijeva http(s) adresu, pa je u
+ * jednodatotečnoj verziji sinkronizacija isključena.
+ */
+const Drive = {
+    configure() {},
+    isConfigured: () => false,
+    isConnected: () => false,
+    connect: () => Promise.reject(new Error('Sinkronizacija nije dostupna u offline verziji.')),
+    connectSilent: () => Promise.reject(new Error('Sinkronizacija nije dostupna u offline verziji.')),
+    disconnect() {},
+    pull: () => Promise.resolve(null),
+    push: () => Promise.resolve(null)
+};
 /*
  * app.js — sučelje: unos smjena, zbrojevi, izvještaji, izvoz i sinkronizacija.
  */
@@ -697,7 +1714,7 @@
 
         $('driveDisconnectBtn').addEventListener('click', () => {
             Drive.disconnect();
-            setSyncStatus('Lokalno', 'off');
+            setSyncStatus('Spremljeno na uređaju', 'on');
             $('settingsMessage').textContent = 'Veza s Driveom je prekinuta. Podaci ostaju na ovom uređaju.';
         });
 
@@ -738,7 +1755,7 @@
             fillSettingsForm();
             resetForm();
             renderAll();
-            setSyncStatus('Lokalno', 'off');
+            setSyncStatus('Spremljeno na uređaju', 'on');
             toast('Svi podaci su obrisani.');
         });
     }
@@ -771,17 +1788,20 @@
         fillSettingsForm();
         resetForm();
         renderAll();
-        setSyncStatus('Lokalno', 'off');
-        registerServiceWorker();
+        setSyncStatus('Spremljeno na uređaju', 'on');
 
         if (settings.driveClientId) {
             configureDrive();
             // Tiha prijava uspije samo ako je pristanak već dan; inače ostajemo lokalno.
             Drive.connectSilent()
                 .then(() => sync({ interactive: false }))
-                .catch(() => setSyncStatus('Lokalno', 'off'));
+                .catch(() => setSyncStatus('Spremljeno na uređaju', 'on'));
         }
     }
 
     document.addEventListener('DOMContentLoaded', init);
 })();
+
+</script>
+</body>
+</html>

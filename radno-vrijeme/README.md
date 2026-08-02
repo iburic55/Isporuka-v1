@@ -5,7 +5,8 @@ bakšiša, sa sinkronizacijom podataka na **Google Drive**.
 
 Nema poslužitelja ni baze — statična stranica (HTML/CSS/JS) koja podatke drži
 u pregledniku (`localStorage`) i, ako je povežeš s Driveom, u jednoj JSON
-datoteci na tvom Google računu.
+datoteci na tvom Google računu. Može se instalirati na mobitel i raditi bez
+interneta (vidi [Na mobitel, bez interneta](#na-mobitel-bez-interneta)).
 
 ## Što radi
 
@@ -23,6 +24,50 @@ datoteci na tvom Google računu.
 - **Sigurnosna kopija** — ručni izvoz/uvoz svih podataka u JSON.
 - **Sinkronizacija s Driveom** — spajanje po zapisu (pobjeđuje novija izmjena)
   pa možeš unositi s mobitela i s računala.
+
+## Na mobitel, bez interneta
+
+Postoje dva načina; oba rade bez mreže nakon što ih jednom postaviš.
+
+### A) Jedna datoteka koju samo preneseš na mobitel
+
+`offline/radno-vrijeme.html` sadrži cijelu aplikaciju — HTML, CSS i JavaScript
+u jednoj datoteci, bez ijednog vanjskog zahtjeva. Prebaci je na mobitel
+(kabelom, e-mailom, Driveom, kako god) i otvori u pregledniku. Nema
+poslužitelja, nema interneta, nema Google prijave; podaci se čuvaju na uređaju,
+a prijenos na drugi uređaj ide kroz **Preuzmi JSON** / **Učitaj JSON**.
+
+Datoteka se ponovno gradi iz izvora naredbom:
+
+```bash
+node build-offline.js
+```
+
+> **Android:** otvori je tako da u Chromeu u adresnu traku upišeš punu putanju,
+> npr. `file:///sdcard/Download/radno-vrijeme.html`. Ako datoteku otvoriš preko
+> aplikacije *Files*, Chrome je ponekad učita kao `content://` adresu, gdje
+> spremljeni podaci ne moraju preživjeti zatvaranje kartice. Zato u svakom
+> slučaju povremeno napravi **Preuzmi JSON**.
+>
+> **iPhone:** Safari ne otvara datoteke s uređaja na način koji čuva podatke —
+> na iOS-u koristi način B.
+
+### B) Instalacija na početni zaslon (PWA)
+
+Aplikacija ima `manifest.webmanifest` i service worker (`sw.js`), pa se može
+instalirati kao ikona na početnom zaslonu i nakon toga radi potpuno bez mreže.
+Uvjet je da se **jednom** posluži preko `https://` (ili `localhost`) jer
+preglednici service worker odbijaju na nesigurnim adresama.
+
+1. Postavi datoteke iz mape `radno-vrijeme/` na bilo koji `https://` poslužitelj
+   (npr. GitHub Pages iz ovog repozitorija — uključuje se u *Settings → Pages*).
+2. Otvori adresu na mobitelu.
+3. Chrome: izbornik → **Dodaj na početni zaslon**. Safari: *Podijeli* →
+   **Dodaj na početni zaslon**.
+
+Nakon instalacije aplikacija se otvara kao zasebna aplikacija, u punom zaslonu
+i bez adresne trake, te radi u zrakoplovnom načinu rada. Internet treba samo
+ako koristiš sinkronizaciju s Google Driveom.
 
 ## Pokretanje
 
@@ -72,13 +117,23 @@ se pamte kao oznaka pa se obrisana smjena ne vraća s drugog uređaja.
 
 ```
 radno-vrijeme/
-├── index.html          # sučelje: smjene, izvještaji, postavke
-├── css/styles.css      # vizualni identitet, svijetla i tamna tema
+├── index.html               # sučelje: smjene, izvještaji, postavke
+├── manifest.webmanifest     # instalacija na početni zaslon
+├── sw.js                    # service worker: rad bez mreže
+├── build-offline.js         # gradi jednodatotečnu verziju
+├── css/styles.css           # vizualni identitet, svijetla i tamna tema
+├── icons/                   # ikone aplikacije (192, 512, maskable)
+├── offline/
+│   └── radno-vrijeme.html   # cijela aplikacija u jednoj datoteci
 └── js/
-    ├── store.js        # model podataka, localStorage, spajanje stanja
-    ├── drive.js        # Google Identity Services + Drive REST API v3
-    └── app.js          # izračuni, prikaz, izvoz, sinkronizacija
+    ├── store.js             # model podataka, localStorage, spajanje stanja
+    ├── drive.js             # Google Identity Services + Drive REST API v3
+    └── app.js               # izračuni, prikaz, izvoz, sinkronizacija
 ```
+
+Dijelovi `index.html` označeni s `<!-- drive:start -->` / `<!-- drive:end -->`
+izostavljaju se pri gradnji offline verzije, pa logika u `js/app.js` ostaje
+zajednička objema verzijama.
 
 ## Pretpostavke
 
