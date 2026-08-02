@@ -4,6 +4,10 @@ Web aplikacija za vođenje partnera i njihovih polica. Lista partnera s
 detaljima u modalu, forma za unos partnera s potpunom validacijom te AJAX unos
 polica koji u stvarnom vremenu označava „velike" partnere.
 
+> U repozitoriju se nalazi i zasebna aplikacija **[Evidencija radnog vremena i
+> bakšiša](radno-vrijeme/README.md)** (`radno-vrijeme/`) — statična web
+> aplikacija sa sinkronizacijom na Google Drive, neovisna o ovom .NET projektu.
+
 ## Tehnološki stack
 
 - **ASP.NET Core 8 MVC** (C#)

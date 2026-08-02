@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Evidencija radnog vremena i bakšiša</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⏱️</text></svg>">
+</head>
+<body>
+<header class="app-header">
+    <div class="app-header__title">
+        <h1>Radno vrijeme i bakšiš</h1>
+        <p class="app-header__subtitle">Evidencija smjena, zarade po satnici i bakšiša</p>
+    </div>
+    <div class="sync-box">
+        <span id="syncStatus" class="sync-status sync-status--off">Lokalno</span>
+        <button type="button" id="syncNowBtn" class="btn btn--ghost" title="Sinkroniziraj s Google Driveom">Sinkroniziraj</button>
+    </div>
+</header>
+
+<nav class="tabs" role="tablist">
+    <button type="button" class="tab is-active" role="tab" data-tab="shifts">Smjene</button>
+    <button type="button" class="tab" role="tab" data-tab="reports">Izvještaji</button>
+    <button type="button" class="tab" role="tab" data-tab="settings">Postavke</button>
+</nav>
+
+<main>
+    <!-- ================= SMJENE ================= -->
+    <section id="tab-shifts" class="tab-panel is-active">
+        <form id="shiftForm" class="card form" novalidate>
+            <h2 id="shiftFormTitle" class="card__title">Nova smjena</h2>
+            <input type="hidden" id="shiftId">
+
+            <div class="grid">
+                <label class="field">
+                    <span>Datum</span>
+                    <input type="date" id="shiftDate" required>
+                </label>
+                <label class="field">
+                    <span>Početak</span>
+                    <input type="time" id="shiftStart" required>
+                </label>
+                <label class="field">
+                    <span>Kraj</span>
+                    <input type="time" id="shiftEnd" required>
+                </label>
+                <label class="field">
+                    <span>Pauza (min)</span>
+                    <input type="number" id="shiftBreak" min="0" step="5" value="0">
+                </label>
+                <label class="field">
+                    <span>Satnica (<span class="currency-label">EUR</span>/h)</span>
+                    <input type="number" id="shiftRate" min="0" step="0.01">
+                </label>
+                <label class="field">
+                    <span>Bakšiš (<span class="currency-label">EUR</span>)</span>
+                    <input type="number" id="shiftTips" min="0" step="0.01" value="0">
+                </label>
+                <label class="field field--wide">
+                    <span>Napomena</span>
+                    <input type="text" id="shiftNote" maxlength="200" placeholder="npr. vikend smjena, zamjena…">
+                </label>
+            </div>
+
+            <p id="shiftPreview" class="preview" aria-live="polite"></p>
+            <p id="shiftError" class="error" role="alert" hidden></p>
+
+            <div class="form__actions">
+                <button type="submit" class="btn btn--primary">Spremi smjenu</button>
+                <button type="button" id="shiftCancelBtn" class="btn btn--ghost" hidden>Odustani</button>
+            </div>
+        </form>
+
+        <div class="card">
+            <div class="card__head">
+                <h2 class="card__title">Evidentirane smjene</h2>
+                <div class="filter">
+                    <label class="field field--inline">
+                        <span>Od</span>
+                        <input type="date" id="filterFrom">
+                    </label>
+                    <label class="field field--inline">
+                        <span>Do</span>
+                        <input type="date" id="filterTo">
+                    </label>
+                    <button type="button" id="filterClearBtn" class="btn btn--ghost">Poništi</button>
+                </div>
+            </div>
+
+            <div id="shiftsSummary" class="totals totals--compact"></div>
+
+            <div class="table-wrap">
+                <table class="table" id="shiftsTable">
+                    <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Vrijeme</th>
+                        <th class="num">Pauza</th>
+                        <th class="num">Sati</th>
+                        <th class="num">Satnica</th>
+                        <th class="num">Od sati</th>
+                        <th class="num">Bakšiš</th>
+                        <th class="num">Ukupno</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody id="shiftsBody"></tbody>
+                </table>
+            </div>
+            <p id="shiftsEmpty" class="empty" hidden>Još nema unesenih smjena.</p>
+
+            <div class="form__actions">
+                <button type="button" id="exportCsvBtn" class="btn">Izvoz u CSV</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= IZVJEŠTAJI ================= -->
+    <section id="tab-reports" class="tab-panel">
+        <div class="card">
+            <div class="card__head">
+                <h2 class="card__title">Pregled razdoblja</h2>
+                <div class="period">
+                    <div class="segmented" role="group" aria-label="Vrsta razdoblja">
+                        <button type="button" class="segmented__btn is-active" data-period="week">Tjedan</button>
+                        <button type="button" class="segmented__btn" data-period="month">Mjesec</button>
+                        <button type="button" class="segmented__btn" data-period="year">Godina</button>
+                        <button type="button" class="segmented__btn" data-period="all">Sve</button>
+                    </div>
+                    <div class="period__nav">
+                        <button type="button" id="periodPrev" class="btn btn--ghost" aria-label="Prethodno razdoblje">‹</button>
+                        <span id="periodLabel" class="period__label"></span>
+                        <button type="button" id="periodNext" class="btn btn--ghost" aria-label="Sljedeće razdoblje">›</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="reportTotals" class="totals"></div>
+
+            <h3 class="card__subtitle">Raspodjela</h3>
+            <div id="reportChart" class="chart"></div>
+
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Razdoblje</th>
+                        <th class="num">Smjena</th>
+                        <th class="num">Sati</th>
+                        <th class="num">Od sati</th>
+                        <th class="num">Bakšiš</th>
+                        <th class="num">Ukupno</th>
+                    </tr>
+                    </thead>
+                    <tbody id="reportBody"></tbody>
+                </table>
+            </div>
+            <p id="reportEmpty" class="empty" hidden>Nema smjena u odabranom razdoblju.</p>
+
+            <div class="form__actions">
+                <button type="button" id="exportReportCsvBtn" class="btn">Izvoz razdoblja u CSV</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= POSTAVKE ================= -->
+    <section id="tab-settings" class="tab-panel">
+        <form id="settingsForm" class="card form">
+            <h2 class="card__title">Osnovne postavke</h2>
+            <div class="grid">
+                <label class="field">
+                    <span>Zadana satnica</span>
+                    <input type="number" id="settingsRate" min="0" step="0.01">
+                </label>
+                <label class="field">
+                    <span>Valuta</span>
+                    <select id="settingsCurrency">
+                        <option value="EUR">EUR (€)</option>
+                        <option value="BAM">BAM (KM)</option>
+                        <option value="RSD">RSD</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="CHF">CHF</option>
+                    </select>
+                </label>
+            </div>
+
+            <h2 class="card__title">Google Drive</h2>
+            <p class="hint">
+                Podaci se uvijek spremaju lokalno u ovaj preglednik. Uz Client ID
+                aplikacija dodatno drži kopiju u JSON datoteci na tvom Driveu i
+                spaja promjene s više uređaja. Upute su u
+                <code>radno-vrijeme/README.md</code>.
+            </p>
+            <div class="grid">
+                <label class="field field--wide">
+                    <span>Google OAuth Client ID</span>
+                    <input type="text" id="settingsClientId" placeholder="123456789-abc.apps.googleusercontent.com" autocomplete="off">
+                </label>
+                <label class="field">
+                    <span>Naziv datoteke na Driveu</span>
+                    <input type="text" id="settingsFileName" placeholder="radno-vrijeme.json">
+                </label>
+                <label class="field field--check">
+                    <input type="checkbox" id="settingsAutoSync">
+                    <span>Automatski sinkroniziraj nakon promjene</span>
+                </label>
+            </div>
+
+            <div class="form__actions">
+                <button type="submit" class="btn btn--primary">Spremi postavke</button>
+                <button type="button" id="driveConnectBtn" class="btn">Poveži s Driveom</button>
+                <button type="button" id="driveDisconnectBtn" class="btn btn--ghost">Odspoji</button>
+            </div>
+            <p id="settingsMessage" class="preview" aria-live="polite"></p>
+        </form>
+
+        <div class="card">
+            <h2 class="card__title">Sigurnosna kopija</h2>
+            <p class="hint">Ručni izvoz/uvoz svih podataka u JSON datoteku.</p>
+            <div class="form__actions">
+                <button type="button" id="exportJsonBtn" class="btn">Preuzmi JSON</button>
+                <label class="btn btn--file">
+                    Učitaj JSON
+                    <input type="file" id="importJsonInput" accept="application/json,.json" hidden>
+                </label>
+                <button type="button" id="clearDataBtn" class="btn btn--danger">Obriši sve podatke</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="js/store.js"></script>
+<script src="js/drive.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
