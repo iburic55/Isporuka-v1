@@ -72,11 +72,21 @@ instalirati kao ikona na početnom zaslonu i nakon toga radi potpuno bez mreže.
 Uvjet je da se **jednom** posluži preko `https://` (ili `localhost`) jer
 preglednici service worker odbijaju na nesigurnim adresama.
 
-1. Postavi datoteke iz mape `radno-vrijeme/` na bilo koji `https://` poslužitelj
-   (npr. GitHub Pages iz ovog repozitorija — uključuje se u *Settings → Pages*).
-2. Otvori adresu na mobitelu.
-3. Chrome: izbornik → **Dodaj na početni zaslon**. Safari: *Podijeli* →
-   **Dodaj na početni zaslon**.
+U repozitoriju je pripremljen workflow `.github/workflows/pages.yml` koji mapu
+`radno-vrijeme/` objavljuje na GitHub Pages, pa je postupak ovakav:
+
+1. Na GitHubu: **Settings → Pages → Build and deployment → Source: GitHub
+   Actions**. (Dovoljno jednom.)
+2. **Actions → Objavi aplikaciju za radno vrijeme → Run workflow**, ili
+   jednostavno gurni izmjenu u `radno-vrijeme/`.
+3. Aplikacija je na `https://<korisnik>.github.io/<repozitorij>/` — za ovaj
+   repozitorij `https://iburic55.github.io/Isporuka-v1/`.
+4. Otvori tu adresu na mobitelu.
+5. Chrome: izbornik ⋮ → **Instaliraj aplikaciju** (ili *Dodaj na početni
+   zaslon*). Safari: *Podijeli* → **Dodaj na početni zaslon**.
+
+Objavljuje se samo kod aplikacije; unesene smjene nikad ne napuštaju uređaj
+jer se drže u pohrani preglednika.
 
 Nakon instalacije aplikacija se otvara kao zasebna aplikacija, u punom zaslonu
 i bez adresne trake, te radi u zrakoplovnom načinu rada. Internet treba samo

@@ -1,0 +1,50 @@
+name: Objavi aplikaciju za radno vrijeme (GitHub Pages)
+
+# Objavljuje sadržaj mape radno-vrijeme/ kao statičnu stranicu, čime
+# aplikacija dobiva https adresu. To je uvjet da je preglednik na mobitelu
+# može instalirati na početni zaslon i poslije koristiti bez mreže.
+#
+# Prije prvog pokretanja u repozitoriju treba jednom uključiti Pages:
+# Settings → Pages → Build and deployment → Source: GitHub Actions.
+
+on:
+  push:
+    branches:
+      - main
+      - claude/work-time-tracking-app-ggeatt
+    paths:
+      - 'radno-vrijeme/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Istovremeno smije teći samo jedna objava; nove izmjene prekidaju staru.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Dohvati repozitorij
+        uses: actions/checkout@v4
+
+      - name: Pripremi Pages
+        uses: actions/configure-pages@v5
+
+      - name: Spakiraj aplikaciju
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: radno-vrijeme
+
+      - name: Objavi
+        id: deployment
+        uses: actions/deploy-pages@v4
